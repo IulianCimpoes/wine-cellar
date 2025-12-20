@@ -2,6 +2,10 @@ package com.example.winecellar.wine;
 
 import com.example.winecellar.winery.WineryService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,11 +29,23 @@ public class WineController {
     @GetMapping
     public List<WineResponse> getAll(@RequestParam(name = "country", required = false) String country) {
         if (country == null || country.isBlank()) {
-            return wineMapper.toResponseList(wineService.findAll());
+            return wineMapper.toResponseList(wineService.findAllWithWinery());
         } else {
-            return wineMapper.toResponseList(wineService.findByCountry(country));
+            return wineMapper.toResponseList(wineService.findByCountryWithWinery(country));
         }
     }
+
+    @GetMapping("/paged")
+    public Page<WineResponse> getPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "name") String sort
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
+        return wineService.findAllPaged(pageable)
+                .map(wineMapper::toResponse);
+    }
+
 
     @PostMapping
     public WineResponse create(@Valid @RequestBody WineCreateRequest request) {
