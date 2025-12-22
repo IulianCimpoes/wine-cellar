@@ -48,4 +48,9 @@ public class WineService {
     public List<Wine> findByCountryWithWinery(String country) {
         return wineRepository.findByCountryWithWinery(country);
     }
+
+    @Transactional(readOnly = true)
+    public List<Wine> findByWineryId(Long wineryId) {
+        return wineRepository.findByWineryRef_Id(wineryId);
+    }
 }

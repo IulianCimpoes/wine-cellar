@@ -29,4 +29,9 @@ public interface WineRepository extends JpaRepository<Wine, Long> {
     List<Wine> findByCountryWithWinery(@Param("country") String country);
 
     Page<Wine> findAll(Pageable pageable);
+
+    long countByWineryRef_Id(Long wineryId);
+
+    List<Wine> findByWineryRef_Id(Long wineryId);
+
 }
