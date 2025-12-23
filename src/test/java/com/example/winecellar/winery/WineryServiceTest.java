@@ -1,6 +1,5 @@
 package com.example.winecellar.winery;
 
-import com.example.winecellar.wine.Wine;
 import com.example.winecellar.wine.WineRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,7 +80,7 @@ class WineryServiceTest {
         when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
         when(wineryRepository.save(winery)).thenReturn(winery);
 
-        var result = wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova" ));
+        var result = wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova"));
 
         assertEquals(1L, result.getId());
         assertEquals("Cricova", result.getName());
@@ -93,11 +92,53 @@ class WineryServiceTest {
     void updateWinery_throwsIllegalArgumentException_whenMissing() {
         var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova" )));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova")));
 
         assertTrue(ex.getMessage().contains("Winery not found"));
         verify(wineryRepository).findById(1L);
+        verifyNoMoreInteractions(wineryRepository);
+    }
+
+    @Test
+    void deleteWinery_whenPresent_andHaveNoWines() {
+        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
+
+        when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
+        when(wineRepository.countByWineryRef_Id(1L)).thenReturn(0L);
+
+        wineryService.delete(1L);
+
+        verify(wineryRepository).findById(1L);
+        verify(wineRepository).countByWineryRef_Id(1L);
+        verify(wineryRepository).delete(winery);
+        verifyNoMoreInteractions(wineryRepository, wineRepository);
+    }
+
+    @Test
+    void deleteWinery_whenPresent_andHaveWines() {
+        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
+
+        when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
+        when(wineRepository.countByWineryRef_Id(1L)).thenReturn(1L);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> wineryService.delete(1L));
+
+        assertEquals("Cannot delete winery 1 because it has 1 wines.", ex.getMessage());
+        verify(wineryRepository).findById(1L);
+        verify(wineRepository).countByWineryRef_Id(1L);
+        verify(wineryRepository, never()).delete(any());
+        verifyNoMoreInteractions(wineryRepository, wineRepository);
+    }
+
+    @Test
+    void deleteWinery_whenNotPresent() {
+
+        when(wineryRepository.findById(9999L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> wineryService.delete(9999L));
+
+        assertEquals("Winery not found: 9999", ex.getMessage());
+        verify(wineryRepository).findById(9999L);
         verifyNoMoreInteractions(wineryRepository);
     }
 }
