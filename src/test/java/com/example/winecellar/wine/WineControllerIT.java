@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -88,7 +89,7 @@ class WineControllerIT {
 
     @Test
     void getAll_returnsList() throws Exception {
-        addWinesToWinery("Test Wine", "Moldova", 2020, BigDecimal.TEN);
+        addWineToWinery("Test Wine", "Moldova", 2020, BigDecimal.TEN);
 
         mockMvc.perform(get("/api/wines"))
                .andExpect(status().isOk())
@@ -100,8 +101,8 @@ class WineControllerIT {
     //GET /api/wines?country=... returns filtered list
     @Test
     void getAll_whenCountryProvided_returnsFilteredList() throws Exception {
-        addWinesToWinery("Test Wine1", "Moldova", 2020, BigDecimal.valueOf(12));
-        addWinesToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
+        addWineToWinery("Test Wine1", "Moldova", 2020, BigDecimal.valueOf(12));
+        addWineToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
 
         mockMvc.perform(get("/api/wines?country=Spain"))
                .andExpect(status().isOk())
@@ -116,8 +117,8 @@ class WineControllerIT {
     //GET /api/wines?country= treated as unfiltered
     @Test
     void getAll_whenCountryBlank_returnsAll() throws Exception {
-        addWinesToWinery("Test Wine1", "Moldova", 2020, BigDecimal.valueOf(12));
-        addWinesToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
+        addWineToWinery("Test Wine1", "Moldova", 2020, BigDecimal.valueOf(12));
+        addWineToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
 
         mockMvc.perform(get("/api/wines?country="))
                .andExpect(status().isOk())
@@ -127,9 +128,9 @@ class WineControllerIT {
     //GET /api/wines/{id} success
     @Test
     void getById_whenPresent_returnsWine() throws Exception {
-        Long wineId = addWinesToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
+        Long wineId = addWineToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
 
-        mockMvc.perform(get("/api/wines/{id}",  wineId))
+        mockMvc.perform(get("/api/wines/{id}", wineId))
                .andExpect(status().isOk())
                .andExpect(jsonPath("name", equalTo("Test Wine2")))
                .andExpect(jsonPath("country", equalTo("Spain")))
@@ -138,7 +139,76 @@ class WineControllerIT {
                .andExpect(jsonPath("winery.id", notNullValue()));
     }
 
-    private long addWinesToWinery(String name, String country, int wineYear, BigDecimal price) {
+    //GET /api/wines/{id} not found → 404
+    @Test
+    void getById_whenMissing_returns404() throws Exception {
+
+        mockMvc.perform(get("/api/wines/9999"))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Wine not found:")));
+    }
+
+    //POST /api/wines with nonexistent wineryId → 404
+    @Test
+    void createWine_returns404_whenWineryMissing() throws Exception {
+        WineCreateRequest request = new WineCreateRequest("Feteasca Neagra", 9999L, "Moldova", 2022, BigDecimal.valueOf(150));
+
+        mockMvc.perform(post("/api/wines").contentType(MediaType.APPLICATION_JSON)
+                                          .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
+    }
+
+    //GET /api/wines/paged default behavior
+    @Test
+    void getPaged_withDefaults_returnsPage() throws Exception {
+        addWinesToWinery(6, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16));
+
+        mockMvc.perform(get("/api/wines/paged"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content").exists())
+               .andExpect(jsonPath("$.content").isArray())
+               .andExpect(jsonPath("$.content", hasSize(5)))
+               .andExpect(jsonPath("$.numberOfElements", equalTo(5)))
+               .andExpect(jsonPath("$.totalElements", equalTo(6)));
+    }
+
+    //GET /api/wines/paged?page=1&size=5
+    @Test
+    void getPaged_withCustomPageAndSize_returnsCorrectSlice() throws Exception {
+        addWinesToWinery(12, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16));
+
+        mockMvc.perform(get("/api/wines/paged?page=1&size=5"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content", hasSize(5)))
+               .andExpect(jsonPath("$.number", equalTo(1)))
+               .andExpect(jsonPath("$.first", equalTo(false)))
+               .andExpect(jsonPath("$.last", equalTo(false)))
+               .andExpect(jsonPath("$.pageable.offset", equalTo(5)))
+               .andExpect(jsonPath("$.size", equalTo(5)));
+    }
+
+    //GET /api/wines/paged?sort=name sorts ascending
+    @Test
+    void getPaged_whenSortByName_sortsAscending() throws Exception {
+        addWineToWinery("A_Wine", "Moldova", 2020, BigDecimal.valueOf(12));
+        addWineToWinery("B_Wine", "Spain", 2021, BigDecimal.valueOf(11));
+        addWineToWinery("C_Wine", "Spain", 2021, BigDecimal.valueOf(11));
+
+        mockMvc.perform(get("/api/wines/paged?sort=name"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content[0].name", equalTo("A_Wine")))
+               .andExpect(jsonPath("$.content[1].name", equalTo("B_Wine")))
+               .andExpect(jsonPath("$.content[2].name", equalTo("C_Wine")));
+    }
+
+    private void addWinesToWinery(int winesCount, String name, String country, int wineYear, BigDecimal price) {
+        IntStream.range(0, winesCount)
+                 .forEach(i -> addWineToWinery(name, country, wineYear, price));
+    }
+
+
+    private long addWineToWinery(String name, String country, int wineYear, BigDecimal price) {
         return wineRepository.save(Wine.builder()
                                        .name(name)
                                        .wineryRef(wineryRepository.findById(wineryId)
