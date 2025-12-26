@@ -1,6 +1,7 @@
 package com.example.winecellar.wine;
 
 
+import com.example.winecellar.common.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ public class WineService {
 
     @Transactional(readOnly = true)
     public Wine findById(Long id) {
-        return wineRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Wine not found: " + id));
+        return wineRepository.findById(id).orElseThrow(() -> new NotFoundException("Wine not found: " + id));
     }
 
     public List<Wine> findByCountry(String country) {

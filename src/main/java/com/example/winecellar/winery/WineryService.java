@@ -1,5 +1,7 @@
 package com.example.winecellar.winery;
 
+import com.example.winecellar.common.exception.ConflictException;
+import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.wine.WineRepository;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +23,7 @@ public class WineryService {
     }
 
     public Winery findById(Long id) {
-        return wineryRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Winery not found: " + id));
+        return wineryRepository.findById(id).orElseThrow(() -> new NotFoundException("Winery not found: " + id));
     }
 
     public List<Winery> findAll() {
@@ -40,7 +42,7 @@ public class WineryService {
 
         long winesCount = wineRepository.countByWineryRef_Id(id);
         if (winesCount > 0) {
-            throw new IllegalStateException("Cannot delete winery " + id + " because it has " + winesCount + " wines.");
+            throw new ConflictException("Cannot delete winery " + id + " because it has " + winesCount + " wines.");
         }
 
         wineryRepository.delete(winery);
