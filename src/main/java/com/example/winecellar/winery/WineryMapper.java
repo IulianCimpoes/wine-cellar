@@ -15,4 +15,11 @@ public class WineryMapper {
                 winery.getCountry()
         );
     }
+
+    public Winery toEntity(WineryCreateRequest request){
+        return Winery.builder()
+                              .name(request.name())
+                              .country(request.country())
+                              .build();
+    }
 }

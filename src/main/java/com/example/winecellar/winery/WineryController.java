@@ -27,12 +27,7 @@ public class WineryController {
 
     @PostMapping
     public WineryResponse create(@Valid @RequestBody WineryCreateRequest request) {
-        var winery = Winery.builder()
-                .name(request.name())
-                .country(request.country())
-                .build();
-
-        return wineryMapper.toResponse(wineryService.create(winery));
+        return wineryMapper.toResponse(wineryService.create(wineryMapper.toEntity(request)));
     }
 
     @GetMapping

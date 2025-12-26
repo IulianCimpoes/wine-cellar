@@ -18,9 +18,7 @@ public class WineController {
     private final WineMapper wineMapper;
     private final WineryService wineryService;
 
-    public WineController(WineService wineService,
-                          WineMapper wineMapper,
-                          WineryService wineryService) {
+    public WineController(WineService wineService, WineMapper wineMapper, WineryService wineryService) {
         this.wineService = wineService;
         this.wineMapper = wineMapper;
         this.wineryService = wineryService;
@@ -36,30 +34,16 @@ public class WineController {
     }
 
     @GetMapping("/paged")
-    public Page<WineResponse> getPaged(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "name") String sort
-    ) {
+    public Page<WineResponse> getPaged(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int size, @RequestParam(defaultValue = "name") String sort) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
         return wineService.findAllPaged(pageable)
-                .map(wineMapper::toResponse);
+                          .map(wineMapper::toResponse);
     }
-
 
     @PostMapping
     public WineResponse create(@Valid @RequestBody WineCreateRequest request) {
         var winery = wineryService.findById(request.wineryId());
-
-        var wine = Wine.builder()
-                .name(request.name())
-                .wineryRef(winery)
-                .country(request.country())
-                .wineYear(request.wineYear())
-                .price(request.price())
-                .build();
-
-        var saved = wineService.create(wine);
+        var saved = wineService.create(wineMapper.toEntity(request, winery));
         return wineMapper.toResponse(saved);
     }
 
