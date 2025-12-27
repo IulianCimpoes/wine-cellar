@@ -1,5 +1,7 @@
 package com.example.winecellar.winery;
 
+import com.example.winecellar.common.exception.ConflictException;
+import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.wine.WineRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,10 +43,10 @@ class WineryServiceTest {
     }
 
     @Test
-    void findById_throwsIllegalArgumentException_whenMissing() {
+    void findById_throwsNotFoundException_whenMissing() {
         when(wineryRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> wineryService.findById(999L));
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> wineryService.findById(999L));
 
         assertTrue(ex.getMessage().contains("Winery not found"));
         verify(wineryRepository).findById(999L);
@@ -85,14 +87,16 @@ class WineryServiceTest {
         assertEquals(1L, result.getId());
         assertEquals("Cricova", result.getName());
         verify(wineryRepository).save(winery);
+        verify(wineryRepository).findById(1L);
+        verify(wineryRepository).existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId());
         verifyNoMoreInteractions(wineryRepository);
     }
 
     @Test
-    void updateWinery_throwsIllegalArgumentException_whenMissing() {
+    void updateWinery_throwsNotFoundException_whenMissing() {
         var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova")));
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova")));
 
         assertTrue(ex.getMessage().contains("Winery not found"));
         verify(wineryRepository).findById(1L);
@@ -121,7 +125,7 @@ class WineryServiceTest {
         when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
         when(wineRepository.countByWineryRef_Id(1L)).thenReturn(1L);
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> wineryService.delete(1L));
+        ConflictException ex = assertThrows(ConflictException.class, () -> wineryService.delete(1L));
 
         assertEquals("Cannot delete winery 1 because it has 1 wines.", ex.getMessage());
         verify(wineryRepository).findById(1L);
@@ -135,10 +139,40 @@ class WineryServiceTest {
 
         when(wineryRepository.findById(9999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> wineryService.delete(9999L));
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> wineryService.delete(9999L));
 
         assertEquals("Winery not found: 9999", ex.getMessage());
         verify(wineryRepository).findById(9999L);
         verifyNoMoreInteractions(wineryRepository);
+    }
+
+    @Test
+    void create_throwsConflictException_whenDuplicateExists() {
+        var winery = Winery.builder().name("Cricova").country("Moldova").build();
+
+        when(wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCase(winery.getName(), winery.getCountry())).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> wineryService.create(winery));
+
+        assertTrue(ex.getMessage().contains("Winery already exists:"));
+        verify(wineryRepository).existsByNameIgnoreCaseAndCountryIgnoreCase(winery.getName(), winery.getCountry());
+        verify(wineryRepository, never()).save(any());
+        verifyNoMoreInteractions(wineryRepository, wineRepository);
+    }
+
+    @Test
+    void update_throwsConflictException_whenDuplicateExists() {
+        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
+
+        when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
+        when(wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId())).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> wineryService.update(winery.getId(), new WineryUpdateRequest(winery.getName(), winery.getCountry())));
+
+        assertTrue(ex.getMessage().contains("Winery already exists:"));
+        verify(wineryRepository).existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId());
+        verify(wineryRepository, never()).save(any());
+        verifyNoMoreInteractions(wineryRepository, wineRepository);
     }
 }

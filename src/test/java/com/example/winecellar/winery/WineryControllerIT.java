@@ -53,6 +53,22 @@ class WineryControllerIT {
                .andExpect(jsonPath("$.country").value("Moldova"));
     }
 
+    //POST /api/wineries — validation fails for the second winery with identical name country
+    @Test
+    void createWinery_returns409_whenDuplicate() throws Exception {
+        WineryCreateRequest request = new WineryCreateRequest("Fautorul", "Moldova");
+
+        mockMvc.perform(post("/api/wineries").contentType(MediaType.APPLICATION_JSON)
+                                             .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/wineries").contentType(MediaType.APPLICATION_JSON)
+                                             .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error").value(containsString("Winery already exists:")));
+
+    }
+
     //POST /api/wineries — validation fails
     @Test
     void createWinery_returns400_whenValidationFails() throws Exception {
@@ -75,16 +91,16 @@ class WineryControllerIT {
     @Test
     void getAll_returnsList() throws Exception {
         wineryRepository.save(Winery.builder()
-                                                    .name("Fautorul")
-                                                    .country("Moldova")
-                                                    .build())
-                                        .getId();
+                                    .name("Fautorul")
+                                    .country("Moldova")
+                                    .build())
+                        .getId();
 
         wineryRepository.save(Winery.builder()
-                                                     .name("Cricova")
-                                                     .country("Moldova")
-                                                     .build())
-                                         .getId();
+                                    .name("Cricova")
+                                    .country("Moldova")
+                                    .build())
+                        .getId();
 
         mockMvc.perform(get("/api/wineries"))
                .andExpect(status().isOk())
@@ -135,6 +151,29 @@ class WineryControllerIT {
                .andExpect(jsonPath("$.name", equalTo("Cricova")))
                .andExpect(jsonPath("$.country", equalTo("Spain")))
                .andExpect(jsonPath("$.id", equalTo(wineryId.intValue())));
+    }
+
+    //PUT /api/wineries/{id} — fails for winery if wineries with given name country exists
+    @Test
+    void update_returns409_whenDuplicate() throws Exception {
+        Long winery1Id = wineryRepository.save(Winery.builder()
+                                                     .name("Fautorul")
+                                                     .country("Moldova")
+                                                     .build())
+                                         .getId();
+        Long winery2Id = wineryRepository.save(Winery.builder()
+                                                     .name("Cricova")
+                                                     .country("Moldova")
+                                                     .build())
+                                         .getId();
+
+        WineryUpdateRequest request = new WineryUpdateRequest("Fautorul", "Moldova");
+
+        mockMvc.perform(put("/api/wineries/{id}", winery2Id).contentType(MediaType.APPLICATION_JSON)
+                                                            .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error").value(containsString("Winery already exists:")));
+
     }
 
     //PUT /api/wineries/{id} — validation fails → 400

@@ -19,11 +19,15 @@ public class WineryService {
     }
 
     public Winery create(Winery winery) {
+        if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCase(winery.getName(), winery.getCountry())) {
+            throw new ConflictException("Winery already exists: " + winery.getName() + " (" + winery.getCountry() + ")");
+        }
         return wineryRepository.save(winery);
     }
 
     public Winery findById(Long id) {
-        return wineryRepository.findById(id).orElseThrow(() -> new NotFoundException("Winery not found: " + id));
+        return wineryRepository.findById(id)
+                               .orElseThrow(() -> new NotFoundException("Winery not found: " + id));
     }
 
     public List<Winery> findAll() {
@@ -34,6 +38,9 @@ public class WineryService {
         Winery winery = findById(id);
         winery.setName(request.name());
         winery.setCountry(request.country());
+        if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId())) {
+            throw new ConflictException("Winery already exists: " + winery.getName() + " (" + winery.getCountry() + ")");
+        }
         return wineryRepository.save(winery);
     }
 
