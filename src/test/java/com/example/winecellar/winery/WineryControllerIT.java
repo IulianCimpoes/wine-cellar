@@ -90,17 +90,8 @@ class WineryControllerIT {
     //GET /api/wineries returns list
     @Test
     void getAll_returnsList() throws Exception {
-        wineryRepository.save(Winery.builder()
-                                    .name("Fautorul")
-                                    .country("Moldova")
-                                    .build())
-                        .getId();
-
-        wineryRepository.save(Winery.builder()
-                                    .name("Cricova")
-                                    .country("Moldova")
-                                    .build())
-                        .getId();
+        addWinery("Fautorul", "Moldova");
+        addWinery("Cricova", "Moldova");
 
         mockMvc.perform(get("/api/wineries"))
                .andExpect(status().isOk())
@@ -110,14 +101,75 @@ class WineryControllerIT {
                .andExpect(jsonPath("$[*].country", everyItem(notNullValue())));
     }
 
+    //GET /api/wineries/paged defaults
+    @Test
+    void getPaged_withDefaults_returnsPage() throws Exception {
+        addWinery("Fautorul", "Moldova");
+        addWinery("Cricova", "Moldova");
+        addWinery("Chateau", "Moldova");
+        addWinery("Milesti", "Moldova");
+        addWinery("Purcari", "Moldova");
+        addWinery("Asconi", "Moldova");
+
+        mockMvc.perform(get("/api/wineries/paged"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content").exists())
+               .andExpect(jsonPath("$.content").isArray())
+               .andExpect(jsonPath("$.content", hasSize(5)))
+               .andExpect(jsonPath("$.last", equalTo(false)))
+               .andExpect(jsonPath("$.first", equalTo(true)))
+               .andExpect(jsonPath("$.numberOfElements", equalTo(5)))
+               .andExpect(jsonPath("$.totalElements", equalTo(6)));
+    }
+
+    //GET /api/wineries/paged?page=1&size=5
+    @Test
+    void getPaged_withCustomPageAndSize_returnsCorrectSlice() throws Exception {
+        addWinery("Fautorul", "Moldova");
+        addWinery("Cricova", "Moldova");
+        addWinery("Chateau", "Moldova");
+        addWinery("Milesti", "Moldova");
+        addWinery("Purcari", "Moldova");
+        addWinery("Asconi", "Moldova");
+        addWinery("Tomai", "Moldova");
+        addWinery("Davidescu", "Moldova");
+        addWinery("Radacini", "Moldova");
+        addWinery("Vin1", "Moldova");
+        addWinery("Vin2", "Moldova");
+        addWinery("Vin3", "Moldova");
+
+        mockMvc.perform(get("/api/wineries/paged?page=1&size=5"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content").exists())
+               .andExpect(jsonPath("$.content").isArray())
+               .andExpect(jsonPath("$.content", hasSize(5)))
+               .andExpect(jsonPath("$.last", equalTo(false)))
+               .andExpect(jsonPath("$.first", equalTo(false)))
+               .andExpect(jsonPath("$.numberOfElements", equalTo(5)))
+               .andExpect(jsonPath("$.totalElements", equalTo(12)));
+    }
+
+    //GET /api/wineries/paged?sort=name
+    @Test
+    void getPaged_whenSortByName_sortsAscending() throws Exception {
+        addWinery("Vin1", "Moldova");
+        addWinery("Vin2", "Moldova");
+        addWinery("Vin3", "Moldova");
+
+        mockMvc.perform(get("/api/wineries/paged?sort=name"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content").exists())
+               .andExpect(jsonPath("$.content").isArray())
+               .andExpect(jsonPath("$.content", hasSize(3)))
+               .andExpect(jsonPath("$.content[0].name", equalTo("Vin1")))
+               .andExpect(jsonPath("$.content[1].name", equalTo("Vin2")))
+               .andExpect(jsonPath("$.content[2].name", equalTo("Vin3")));
+    }
+
     //GET /api/wineries/{id} — success
     @Test
     void getById_whenPresent_returnsWinery() throws Exception {
-        Long wineryId = wineryRepository.save(Winery.builder()
-                                                    .name("Fautorul")
-                                                    .country("Moldova")
-                                                    .build())
-                                        .getId();
+        Long wineryId = addWinery("Fautorul", "Moldova");
 
         mockMvc.perform(get("/api/wineries/{id}", wineryId))
                .andExpect(status().isOk())
@@ -137,11 +189,7 @@ class WineryControllerIT {
     //PUT /api/wineries/{id} — success
     @Test
     void update_whenPresent_returnsUpdatedWinery() throws Exception {
-        Long wineryId = wineryRepository.save(Winery.builder()
-                                                    .name("Fautorul")
-                                                    .country("Moldova")
-                                                    .build())
-                                        .getId();
+        Long wineryId = addWinery("Fautorul", "Moldova");
 
         WineryUpdateRequest request = new WineryUpdateRequest("Cricova", "Spain");
 
@@ -156,16 +204,8 @@ class WineryControllerIT {
     //PUT /api/wineries/{id} — fails for winery if wineries with given name country exists
     @Test
     void update_returns409_whenDuplicate() throws Exception {
-        Long winery1Id = wineryRepository.save(Winery.builder()
-                                                     .name("Fautorul")
-                                                     .country("Moldova")
-                                                     .build())
-                                         .getId();
-        Long winery2Id = wineryRepository.save(Winery.builder()
-                                                     .name("Cricova")
-                                                     .country("Moldova")
-                                                     .build())
-                                         .getId();
+        Long winery1Id = addWinery("Fautorul", "Moldova");
+        Long winery2Id = addWinery("Cricova", "Moldova");
 
         WineryUpdateRequest request = new WineryUpdateRequest("Fautorul", "Moldova");
 
@@ -179,11 +219,7 @@ class WineryControllerIT {
     //PUT /api/wineries/{id} — validation fails → 400
     @Test
     void update_returns400_whenValidationFails() throws Exception {
-        Long wineryId = wineryRepository.save(Winery.builder()
-                                                    .name("Fautorul")
-                                                    .country("Moldova")
-                                                    .build())
-                                        .getId();
+        Long wineryId = addWinery("Fautorul", "Moldova");
 
         String badJson = """
                 {
@@ -214,11 +250,7 @@ class WineryControllerIT {
     //DELETE /api/wineries/{id}
     @Test
     void delete_whenNoWines_returns204() throws Exception {
-        Long wineryId = wineryRepository.save(Winery.builder()
-                                                    .name("Fautorul")
-                                                    .country("Moldova")
-                                                    .build())
-                                        .getId();
+        Long wineryId = addWinery("Fautorul", "Moldova");
 
         mockMvc.perform(delete("/api/wineries/{id}", wineryId))
                .andExpect(status().isNoContent());
@@ -227,11 +259,7 @@ class WineryControllerIT {
     //DELETE /api/wineries/{id} — conflict (has wines) → 409
     @Test
     void delete_whenHasWines_returns409() throws Exception {
-        Long wineryId = wineryRepository.save(Winery.builder()
-                                                    .name("Fautorul")
-                                                    .country("Moldova")
-                                                    .build())
-                                        .getId();
+        Long wineryId = addWinery("Fautorul", "Moldova");
         wineRepository.save(Wine.builder()
                                 .name("Wine1")
                                 .wineryRef(wineryRepository.findById(wineryId)
@@ -239,8 +267,7 @@ class WineryControllerIT {
                                 .country("Moldova")
                                 .wineYear(2020)
                                 .price(BigDecimal.valueOf(11))
-                                .build())
-                      .getId();
+                                .build());
 
         mockMvc.perform(delete("/api/wineries/{id}", wineryId))
                .andExpect(status().isConflict())
@@ -258,11 +285,7 @@ class WineryControllerIT {
     //GET /api/wineries/{id}/wines — success returns list
     @Test
     void getWinesForWinery_whenPresent_returnsWineList() throws Exception {
-        Long wineryId = wineryRepository.save(Winery.builder()
-                                                    .name("Fautorul")
-                                                    .country("Moldova")
-                                                    .build())
-                                        .getId();
+        Long wineryId = addWinery("Fautorul", "Moldova");
         wineRepository.save(Wine.builder()
                                 .name("Wine1")
                                 .wineryRef(wineryRepository.findById(wineryId)
@@ -270,8 +293,7 @@ class WineryControllerIT {
                                 .country("Moldova")
                                 .wineYear(2020)
                                 .price(BigDecimal.valueOf(11))
-                                .build())
-                      .getId();
+                                .build());
 
         wineRepository.save(Wine.builder()
                                 .name("Wine2")
@@ -280,8 +302,7 @@ class WineryControllerIT {
                                 .country("Moldova")
                                 .wineYear(2020)
                                 .price(BigDecimal.valueOf(11))
-                                .build())
-                      .getId();
+                                .build());
 
         mockMvc.perform(get("/api/wineries/{id}/wines", wineryId))
                .andExpect(status().isOk())
@@ -297,5 +318,13 @@ class WineryControllerIT {
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
 
+    }
+
+    private Long addWinery(String name, String country) throws Exception {
+        return wineryRepository.save(Winery.builder()
+                                           .name(name)
+                                           .country(country)
+                                           .build())
+                               .getId();
     }
 }

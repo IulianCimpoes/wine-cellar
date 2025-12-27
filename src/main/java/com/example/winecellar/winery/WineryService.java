@@ -3,6 +3,8 @@ package com.example.winecellar.winery;
 import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.wine.WineRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -55,5 +57,8 @@ public class WineryService {
         wineryRepository.delete(winery);
     }
 
+    public Page<Winery> findAllPaged(Pageable pageable) {
+        return wineryRepository.findAll(pageable);
+    }
 
 }

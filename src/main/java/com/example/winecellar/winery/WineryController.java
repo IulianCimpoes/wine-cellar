@@ -4,6 +4,10 @@ import com.example.winecellar.wine.WineMapper;
 import com.example.winecellar.wine.WineResponse;
 import com.example.winecellar.wine.WineService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,9 +54,18 @@ public class WineryController {
 
     @GetMapping("/{id}/wines")
     public List<WineResponse> getWinesForWinery(@PathVariable Long id) {
-        // ensure winery exists (nice 404 instead of empty list for wrong id)
         wineryService.findById(id);
         return wineMapper.toResponseList(wineService.findByWineryId(id));
+    }
+
+    @GetMapping("/paged")
+    public Page<WineryResponse> getPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "name") String sort
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
+        return wineryService.findAllPaged(pageable).map(wineryMapper::toResponse);
     }
 
     @DeleteMapping("/{id}")

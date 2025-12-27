@@ -1,5 +1,6 @@
 package com.example.winecellar.wine;
 
+import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.winery.Winery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,8 +47,8 @@ class WineServiceTest {
     void findById_throwsIllegalArgumentException_whenMissing() {
         when(wineRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException ex = assertThrows(
-                IllegalArgumentException.class,
+        NotFoundException ex = assertThrows(
+                NotFoundException.class,
                 () -> wineService.findById(999L)
         );
 
