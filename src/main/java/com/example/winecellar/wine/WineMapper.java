@@ -41,4 +41,14 @@ public class WineMapper {
                    .price(request.price())
                    .build();
     }
+
+    public Wine toEntity(WineUpdateRequest request, Winery winery) {
+        return Wine.builder()
+                   .name(request.name())
+                   .wineryRef(winery)
+                   .country(request.country())
+                   .wineYear(request.wineYear())
+                   .price(request.price())
+                   .build();
+    }
 }

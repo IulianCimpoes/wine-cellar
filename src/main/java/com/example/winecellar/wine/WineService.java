@@ -1,7 +1,10 @@
 package com.example.winecellar.wine;
 
 
+import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
+import com.example.winecellar.winery.Winery;
+import com.example.winecellar.winery.WineryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -14,9 +17,11 @@ import java.util.List;
 public class WineService {
 
     private final WineRepository wineRepository;
+    private final WineryRepository wineryRepository;
 
-    public WineService(WineRepository wineRepository) {
-        this.wineRepository = wineRepository;  // constructor-based DI
+    public WineService(WineRepository wineRepository, WineryRepository wineryRepository) {
+        this.wineRepository = wineRepository;
+        this.wineryRepository = wineryRepository;
     }
 
     public List<Wine> findAll() {
@@ -34,7 +39,12 @@ public class WineService {
 
     @Transactional(readOnly = true)
     public Wine findById(Long id) {
-        return wineRepository.findById(id).orElseThrow(() -> new NotFoundException("Wine not found: " + id));
+        return wineRepository.findById(id)
+                             .orElseThrow(() -> new NotFoundException("Wine not found: " + id));
+    }
+
+    public Page<Wine> findByWineryIdPaged(Long wineryId, Pageable pageable) {
+        return wineRepository.findByWineryRef_Id(wineryId, pageable);
     }
 
     public List<Wine> findByCountry(String country) {
@@ -53,5 +63,18 @@ public class WineService {
     @Transactional(readOnly = true)
     public List<Wine> findByWineryId(Long wineryId) {
         return wineRepository.findByWineryRef_Id(wineryId);
+    }
+
+    public Wine update(Long id, WineUpdateRequest request) {
+
+        Wine wine = findById(id);
+        Winery winery = wineryRepository.findById(request.wineryId())
+                                        .orElseThrow(() -> new NotFoundException("Winery not found: " + request.wineryId()));
+        wine.setName(request.name());
+        wine.setCountry(request.country());
+        wine.setWineryRef(winery);
+        wine.setWineYear(request.wineYear());
+        wine.setPrice(request.price());
+        return wineRepository.save(wine);
     }
 }

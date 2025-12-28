@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -320,11 +321,90 @@ class WineryControllerIT {
 
     }
 
+    //GET /api/wineries/{id}/wines/paged
+    @Test
+    void getWinesForWineryPaged_withDefaults_returnsPage() throws Exception {
+        Long wineryId = addWinery("Fautorul", "Moldova");
+        addWinesToWinery(6, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+
+        mockMvc.perform(get("/api/wineries/{id}/wines/paged", wineryId))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content").exists())
+               .andExpect(jsonPath("$.content").isArray())
+               .andExpect(jsonPath("$.content", hasSize(5)))
+               .andExpect(jsonPath("$.last", equalTo(false)))
+               .andExpect(jsonPath("$.first", equalTo(true)))
+               .andExpect(jsonPath("$.content[*].winery.id", everyItem(equalTo(wineryId.intValue()))))
+               .andExpect(jsonPath("$.numberOfElements", equalTo(5)))
+               .andExpect(jsonPath("$.totalElements", equalTo(6)));
+    }
+
+    //GET /api/wineries/{id}/wines/paged?page=1&size=5
+    @Test
+    void getWinesForWineryPaged_withCustomPageAndSize_returnsCorrectSlice() throws Exception {
+        Long wineryId = addWinery("Fautorul", "Moldova");
+        addWinesToWinery(12, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+
+        mockMvc.perform(get("/api/wineries/{id}/wines/paged?page=1&size=5", wineryId))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content").exists())
+               .andExpect(jsonPath("$.content").isArray())
+               .andExpect(jsonPath("$.content", hasSize(5)))
+               .andExpect(jsonPath("$.last", equalTo(false)))
+               .andExpect(jsonPath("$.first", equalTo(false)))
+               .andExpect(jsonPath("$.content[*].winery.id", everyItem(equalTo(wineryId.intValue()))))
+               .andExpect(jsonPath("$.pageable.pageNumber", equalTo(1)))
+               .andExpect(jsonPath("$.pageable.offset", equalTo(5)))
+               .andExpect(jsonPath("$.totalElements", equalTo(12)));
+    }
+
+    //GET /api/wineries/{id}/wines/paged?size=3&sort=name
+    @Test
+    void getWinesForWineryPaged_whenSortByName_sortsAscending() throws Exception {
+        Long wineryId = addWinery("Fautorul", "Moldova");
+        addWineToWinery("Test Wine1", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+        addWineToWinery("Test Wine3", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+        addWineToWinery("Test Wine2", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+
+        mockMvc.perform(get("/api/wineries/{id}/wines/paged?size=3&sort=name", wineryId))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.content[0].name", equalTo("Test Wine1")))
+               .andExpect(jsonPath("$.content[1].name", equalTo("Test Wine2")))
+               .andExpect(jsonPath("$.content[2].name", equalTo("Test Wine3")));
+    }
+
+    //GET /api/wineries/9999/wines/paged
+    @Test
+    void getWinesForWineryPaged_whenWineryMissing_returns404() throws Exception {
+
+        mockMvc.perform(get("/api/wineries/9999/wines/paged?size=3&sort=name"))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
+    }
+
     private Long addWinery(String name, String country) throws Exception {
         return wineryRepository.save(Winery.builder()
                                            .name(name)
                                            .country(country)
                                            .build())
                                .getId();
+    }
+
+    private void addWinesToWinery(int winesCount, String name, String country, int wineYear, BigDecimal price, Long wineryId) {
+        IntStream.range(0, winesCount)
+                 .forEach(i -> addWineToWinery(name, country, wineYear, price, wineryId));
+    }
+
+
+    private long addWineToWinery(String name, String country, int wineYear, BigDecimal price, Long wineryId) {
+        return wineRepository.save(Wine.builder()
+                                       .name(name)
+                                       .wineryRef(wineryRepository.findById(wineryId)
+                                                                  .orElseThrow())
+                                       .country(country)
+                                       .wineYear(wineYear)
+                                       .price(price)
+                                       .build())
+                             .getId();
     }
 }

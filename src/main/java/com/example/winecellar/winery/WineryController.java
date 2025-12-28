@@ -68,6 +68,18 @@ public class WineryController {
         return wineryService.findAllPaged(pageable).map(wineryMapper::toResponse);
     }
 
+    @GetMapping("/{id}/wines/paged")
+    public Page<WineResponse> getWinesForWineryPaged(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "name") String sort
+    ) {
+        wineryService.findById(id); // ensure 404 if winery missing
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
+        return wineService.findByWineryIdPaged(id, pageable).map(wineMapper::toResponse);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {

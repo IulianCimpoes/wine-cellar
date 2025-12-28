@@ -34,4 +34,6 @@ public interface WineRepository extends JpaRepository<Wine, Long> {
 
     List<Wine> findByWineryRef_Id(Long wineryId);
 
+    Page<Wine> findByWineryRef_Id(Long wineryId, Pageable pageable);
+
 }

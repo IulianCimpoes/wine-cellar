@@ -2,6 +2,7 @@ package com.example.winecellar.wine;
 
 import com.example.winecellar.winery.Winery;
 import com.example.winecellar.winery.WineryRepository;
+import com.example.winecellar.winery.WineryUpdateRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,8 +16,7 @@ import java.math.BigDecimal;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -159,7 +159,7 @@ class WineControllerIT {
                .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
     }
 
-    //GET /api/wines/paged default behavior
+    //addWineToWinery default behavior
     @Test
     void getPaged_withDefaults_returnsPage() throws Exception {
         addWinesToWinery(6, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16));
@@ -200,6 +200,34 @@ class WineControllerIT {
                .andExpect(jsonPath("$.content[0].name", equalTo("A_Wine")))
                .andExpect(jsonPath("$.content[1].name", equalTo("B_Wine")))
                .andExpect(jsonPath("$.content[2].name", equalTo("C_Wine")));
+    }
+
+    //PUT /api/wines/{id} — success
+    @Test
+    void updateWine_whenPresent_returnsUpdatedWine() throws Exception {
+        Long wineId = addWineToWinery("Test Wine1", "Spain", 2024, BigDecimal.valueOf(16));
+
+        Winery winery = Winery.builder()
+                              .name("Winery1")
+                              .country("Spain")
+                              .build();
+
+        Long updatedWineryId = wineryRepository.save(winery)
+                                   .getId();
+
+        WineUpdateRequest request = new WineUpdateRequest("Test Wine2", updatedWineryId, "Moldova", 2021, BigDecimal.valueOf(11));
+
+        mockMvc.perform(put("/api/wines/{id}", wineId).contentType(MediaType.APPLICATION_JSON)
+                                                           .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.name", equalTo("Test Wine2")))
+               .andExpect(jsonPath("$.winery.id", equalTo(updatedWineryId.intValue())))
+               .andExpect(jsonPath("$.winery.name", equalTo("Winery1")))
+               .andExpect(jsonPath("$.winery.country", equalTo("Spain")))
+               .andExpect(jsonPath("$.country", equalTo("Moldova")))
+               .andExpect(jsonPath("$.wineYear", equalTo(2021)))
+               .andExpect(jsonPath("$.price", equalTo(11)))
+               .andExpect(jsonPath("$.id", equalTo(wineId.intValue())));
     }
 
     private void addWinesToWinery(int winesCount, String name, String country, int wineYear, BigDecimal price) {

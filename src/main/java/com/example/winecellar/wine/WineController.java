@@ -51,4 +51,11 @@ public class WineController {
     public WineResponse getById(@PathVariable Long id) {
         return wineMapper.toResponse(wineService.findById(id));
     }
+
+    @PutMapping("/{id}")
+    public WineResponse update(@PathVariable Long id,
+                               @Valid @RequestBody WineUpdateRequest request) {
+        return wineMapper.toResponse(wineService.update(id, request));
+    }
+
 }
