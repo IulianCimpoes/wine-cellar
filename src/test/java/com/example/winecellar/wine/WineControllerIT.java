@@ -230,6 +230,48 @@ class WineControllerIT {
                .andExpect(jsonPath("$.id", equalTo(wineId.intValue())));
     }
 
+    @Test
+    void updateWine_whenMissing_returns404() throws Exception {
+        WineUpdateRequest request =
+                new WineUpdateRequest("Wine", wineryId, "Moldova", 2022, BigDecimal.TEN);
+
+        mockMvc.perform(put("/api/wines/9999")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Wine not found")));
+    }
+
+    @Test
+    void updateWine_whenWineryMissing_returns404() throws Exception {
+        Long wineId = addWineToWinery("Wine", "Moldova", 2022, BigDecimal.TEN);
+
+        WineUpdateRequest request =
+                new WineUpdateRequest("Wine", 9999L, "Moldova", 2022, BigDecimal.TEN);
+
+        mockMvc.perform(put("/api/wines/{id}", wineId)
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Winery not found")));
+    }
+
+    @Test
+    void deleteWine_whenPresent_returns204() throws Exception {
+        Long wineId = addWineToWinery("Wine", "Moldova", 2022, BigDecimal.TEN);
+
+        mockMvc.perform(delete("/api/wines/{id}", wineId))
+               .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteWine_whenMissing_returns404() throws Exception {
+        mockMvc.perform(delete("/api/wines/9999"))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Wine not found")));
+    }
+
+
     private void addWinesToWinery(int winesCount, String name, String country, int wineYear, BigDecimal price) {
         IntStream.range(0, winesCount)
                  .forEach(i -> addWineToWinery(name, country, wineYear, price));

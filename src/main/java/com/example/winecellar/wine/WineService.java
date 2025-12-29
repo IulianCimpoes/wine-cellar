@@ -1,7 +1,6 @@
 package com.example.winecellar.wine;
 
 
-import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.winery.Winery;
 import com.example.winecellar.winery.WineryRepository;
@@ -24,6 +23,7 @@ public class WineService {
         this.wineryRepository = wineryRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<Wine> findAll() {
         return wineRepository.findAll();
     }
@@ -43,10 +43,12 @@ public class WineService {
                              .orElseThrow(() -> new NotFoundException("Wine not found: " + id));
     }
 
+    @Transactional(readOnly = true)
     public Page<Wine> findByWineryIdPaged(Long wineryId, Pageable pageable) {
         return wineRepository.findByWineryRef_Id(wineryId, pageable);
     }
 
+    @Transactional(readOnly = true)
     public List<Wine> findByCountry(String country) {
         return wineRepository.findByCountryIgnoreCase(country);
     }
@@ -56,6 +58,7 @@ public class WineService {
         return wineRepository.findAllWithWinery();
     }
 
+    @Transactional(readOnly = true)
     public List<Wine> findByCountryWithWinery(String country) {
         return wineRepository.findByCountryWithWinery(country);
     }
@@ -77,4 +80,10 @@ public class WineService {
         wine.setPrice(request.price());
         return wineRepository.save(wine);
     }
+
+    public void delete(Long id) {
+        findById(id);
+        wineRepository.deleteById(id);
+    }
+
 }

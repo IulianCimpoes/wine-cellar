@@ -6,10 +6,12 @@ import com.example.winecellar.wine.WineRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class WineryService {
 
     private final WineryRepository wineryRepository;
@@ -27,11 +29,13 @@ public class WineryService {
         return wineryRepository.save(winery);
     }
 
+    @Transactional(readOnly = true)
     public Winery findById(Long id) {
         return wineryRepository.findById(id)
                                .orElseThrow(() -> new NotFoundException("Winery not found: " + id));
     }
 
+    @Transactional(readOnly = true)
     public List<Winery> findAll() {
         return wineryRepository.findAll();
     }
@@ -57,6 +61,7 @@ public class WineryService {
         wineryRepository.delete(winery);
     }
 
+    @Transactional(readOnly = true)
     public Page<Winery> findAllPaged(Pageable pageable) {
         return wineryRepository.findAll(pageable);
     }
