@@ -36,4 +36,11 @@ public interface WineRepository extends JpaRepository<Wine, Long> {
 
     Page<Wine> findByWineryRef_Id(Long wineryId, Pageable pageable);
 
+    boolean existsByNameIgnoreCaseAndWineYearAndWineryRef_Id(String name, int wineYear, Long wineryId);
+
+    boolean existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(
+            String name, int wineYear, Long wineryId, Long id
+    );
+
+
 }

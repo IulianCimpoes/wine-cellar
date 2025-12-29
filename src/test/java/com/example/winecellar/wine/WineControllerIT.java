@@ -88,6 +88,29 @@ class WineControllerIT {
     }
 
     @Test
+    void createWine_returns409_whenDuplicate() throws Exception {
+        WineCreateRequest request = new WineCreateRequest(
+                "Feteasca Neagra",
+                wineryId,
+                "Moldova",
+                2022,
+                BigDecimal.valueOf(150)
+        );
+
+        mockMvc.perform(post("/api/wines")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/wines")
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
+    }
+
+
+    @Test
     void getAll_returnsList() throws Exception {
         addWineToWinery("Test Wine", "Moldova", 2020, BigDecimal.TEN);
 
@@ -255,6 +278,31 @@ class WineControllerIT {
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.error").value(containsString("Winery not found")));
     }
+
+    @Test
+    void updateWine_returns409_whenDuplicate() throws Exception {
+        // Wine A: target “unique key”
+        Long wineAId = addWineToWinery("Feteasca Neagra", "Moldova", 2022, BigDecimal.valueOf(150));
+
+        // Wine B: different initially
+        Long wineBId = addWineToWinery("Rara Neagra", "Moldova", 2021, BigDecimal.valueOf(120));
+
+        // Update Wine B to collide with Wine A (same name + year + wineryId)
+        WineUpdateRequest request = new WineUpdateRequest(
+                "Feteasca Neagra",
+                wineryId,
+                "Moldova",
+                2022,
+                BigDecimal.valueOf(150)
+        );
+
+        mockMvc.perform(put("/api/wines/{id}", wineBId)
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
+    }
+
 
     @Test
     void deleteWine_whenPresent_returns204() throws Exception {

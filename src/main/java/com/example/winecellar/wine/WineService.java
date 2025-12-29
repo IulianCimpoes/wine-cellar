@@ -1,6 +1,7 @@
 package com.example.winecellar.wine;
 
 
+import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.winery.Winery;
 import com.example.winecellar.winery.WineryRepository;
@@ -34,6 +35,12 @@ public class WineService {
     }
 
     public Wine create(Wine wine) {
+        if (wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_Id(wine.getName(), wine.getWineYear(), wine.getWineryRef()
+                                                                                                                    .getId())) {
+            throw new ConflictException("Wine already exists: " + wine.getName() + " (" + wine.getWineYear() + ") for winery " + wine.getWineryRef()
+                                                                                                                                     .getId());
+        }
+
         return wineRepository.save(wine);
     }
 
@@ -73,6 +80,11 @@ public class WineService {
         Wine wine = findById(id);
         Winery winery = wineryRepository.findById(request.wineryId())
                                         .orElseThrow(() -> new NotFoundException("Winery not found: " + request.wineryId()));
+
+        if (wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(request.name(), request.wineYear(), request.wineryId(), id)) {
+            throw new ConflictException("Wine already exists: " + request.name() + " (" + request.wineYear() + ") for winery " + request.wineryId());
+        }
+
         wine.setName(request.name());
         wine.setCountry(request.country());
         wine.setWineryRef(winery);
