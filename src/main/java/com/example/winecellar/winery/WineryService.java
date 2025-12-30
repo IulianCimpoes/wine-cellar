@@ -5,6 +5,7 @@ import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.wine.WineRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,26 @@ public class WineryService {
         this.wineRepository = wineRepository;
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public Winery findById(Long id) {
+        return wineryRepository.findById(id)
+                               .orElseThrow(() -> new NotFoundException("Winery not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public List<Winery> findAll() {
+        return wineryRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public Page<Winery> findAllPaged(Pageable pageable) {
+        return wineryRepository.findAll(pageable);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     public Winery create(Winery winery) {
         if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCase(winery.getName(), winery.getCountry())) {
             throw new ConflictException("Winery already exists: " + winery.getName() + " (" + winery.getCountry() + ")");
@@ -29,27 +50,20 @@ public class WineryService {
         return wineryRepository.save(winery);
     }
 
-    @Transactional(readOnly = true)
-    public Winery findById(Long id) {
-        return wineryRepository.findById(id)
-                               .orElseThrow(() -> new NotFoundException("Winery not found: " + id));
-    }
-
-    @Transactional(readOnly = true)
-    public List<Winery> findAll() {
-        return wineryRepository.findAll();
-    }
-
+    @PreAuthorize("hasRole('ADMIN')")
     public Winery update(Long id, WineryUpdateRequest request) {
         Winery winery = findById(id);
-        winery.setName(request.name());
-        winery.setCountry(request.country());
-        if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId())) {
+
+        if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(request.name(), request.country(), winery.getId())) {
             throw new ConflictException("Winery already exists: " + winery.getName() + " (" + winery.getCountry() + ")");
         }
+
+        winery.setName(request.name());
+        winery.setCountry(request.country());
         return wineryRepository.save(winery);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         Winery winery = findById(id);
 
@@ -59,11 +73,6 @@ public class WineryService {
         }
 
         wineryRepository.delete(winery);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<Winery> findAllPaged(Pageable pageable) {
-        return wineryRepository.findAll(pageable);
     }
 
 }

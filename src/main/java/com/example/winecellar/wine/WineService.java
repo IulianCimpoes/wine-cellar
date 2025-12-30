@@ -7,6 +7,7 @@ import com.example.winecellar.winery.Winery;
 import com.example.winecellar.winery.WineryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,15 +26,55 @@ public class WineService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public List<Wine> findAll() {
         return wineRepository.findAll();
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public Page<Wine> findAllPaged(Pageable pageable) {
         return wineRepository.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public Wine findById(Long id) {
+        return wineRepository.findById(id)
+                             .orElseThrow(() -> new NotFoundException("Wine not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public Page<Wine> findByWineryIdPaged(Long wineryId, Pageable pageable) {
+        return wineRepository.findByWineryRef_Id(wineryId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public List<Wine> findByCountry(String country) {
+        return wineRepository.findByCountryIgnoreCase(country);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public List<Wine> findAllWithWinery() {
+        return wineRepository.findAllWithWinery();
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public List<Wine> findByCountryWithWinery(String country) {
+        return wineRepository.findByCountryWithWinery(country);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public List<Wine> findByWineryId(Long wineryId) {
+        return wineRepository.findByWineryRef_Id(wineryId);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     public Wine create(Wine wine) {
         if (wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_Id(wine.getName(), wine.getWineYear(), wine.getWineryRef()
                                                                                                                     .getId())) {
@@ -44,37 +85,7 @@ public class WineService {
         return wineRepository.save(wine);
     }
 
-    @Transactional(readOnly = true)
-    public Wine findById(Long id) {
-        return wineRepository.findById(id)
-                             .orElseThrow(() -> new NotFoundException("Wine not found: " + id));
-    }
-
-    @Transactional(readOnly = true)
-    public Page<Wine> findByWineryIdPaged(Long wineryId, Pageable pageable) {
-        return wineRepository.findByWineryRef_Id(wineryId, pageable);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Wine> findByCountry(String country) {
-        return wineRepository.findByCountryIgnoreCase(country);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Wine> findAllWithWinery() {
-        return wineRepository.findAllWithWinery();
-    }
-
-    @Transactional(readOnly = true)
-    public List<Wine> findByCountryWithWinery(String country) {
-        return wineRepository.findByCountryWithWinery(country);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Wine> findByWineryId(Long wineryId) {
-        return wineRepository.findByWineryRef_Id(wineryId);
-    }
-
+    @PreAuthorize("hasRole('ADMIN')")
     public Wine update(Long id, WineUpdateRequest request) {
 
         Wine wine = findById(id);
@@ -93,6 +104,7 @@ public class WineService {
         return wineRepository.save(wine);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         findById(id);
         wineRepository.deleteById(id);

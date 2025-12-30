@@ -1,4 +1,4 @@
-package com.example.winecellar.common;
+package com.example.winecellar.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;

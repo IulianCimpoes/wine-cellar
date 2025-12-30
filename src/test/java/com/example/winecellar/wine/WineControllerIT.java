@@ -2,7 +2,6 @@ package com.example.winecellar.wine;
 
 import com.example.winecellar.winery.Winery;
 import com.example.winecellar.winery.WineryRepository;
-import com.example.winecellar.winery.WineryUpdateRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +15,7 @@ import java.math.BigDecimal;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,7 +54,8 @@ class WineControllerIT {
     void createWine_returnsWineResponse() throws Exception {
         WineCreateRequest request = new WineCreateRequest("Feteasca Neagra", wineryId, "Moldova", 2022, BigDecimal.valueOf(150));
 
-        mockMvc.perform(post("/api/wines").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/wines").with(httpBasic("admin", "adminpass"))
+                                          .contentType(MediaType.APPLICATION_JSON)
                                           .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.id", notNullValue()))
@@ -78,7 +79,8 @@ class WineControllerIT {
                 }
                 """.formatted(wineryId);
 
-        mockMvc.perform(post("/api/wines").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/wines").with(httpBasic("admin", "adminpass"))
+                                          .contentType(MediaType.APPLICATION_JSON)
                                           .content(badJson))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.error").value("Validation failed"))
@@ -89,22 +91,16 @@ class WineControllerIT {
 
     @Test
     void createWine_returns409_whenDuplicate() throws Exception {
-        WineCreateRequest request = new WineCreateRequest(
-                "Feteasca Neagra",
-                wineryId,
-                "Moldova",
-                2022,
-                BigDecimal.valueOf(150)
-        );
+        WineCreateRequest request = new WineCreateRequest("Feteasca Neagra", wineryId, "Moldova", 2022, BigDecimal.valueOf(150));
 
-        mockMvc.perform(post("/api/wines")
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(post("/api/wines").with(httpBasic("admin", "adminpass"))
+                                          .contentType(MediaType.APPLICATION_JSON)
+                                          .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/wines")
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(post("/api/wines").with(httpBasic("admin", "adminpass"))
+                                          .contentType(MediaType.APPLICATION_JSON)
+                                          .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isConflict())
                .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
     }
@@ -114,7 +110,7 @@ class WineControllerIT {
     void getAll_returnsList() throws Exception {
         addWineToWinery("Test Wine", "Moldova", 2020, BigDecimal.TEN);
 
-        mockMvc.perform(get("/api/wines"))
+        mockMvc.perform(get("/api/wines").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
                .andExpect(jsonPath("$[0].name", not(emptyOrNullString())))
@@ -127,7 +123,7 @@ class WineControllerIT {
         addWineToWinery("Test Wine1", "Moldova", 2020, BigDecimal.valueOf(12));
         addWineToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
 
-        mockMvc.perform(get("/api/wines?country=Spain"))
+        mockMvc.perform(get("/api/wines?country=Spain").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$", hasSize(equalTo(1))))
                .andExpect(jsonPath("$[0].name", equalTo("Test Wine2")))
@@ -143,7 +139,7 @@ class WineControllerIT {
         addWineToWinery("Test Wine1", "Moldova", 2020, BigDecimal.valueOf(12));
         addWineToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
 
-        mockMvc.perform(get("/api/wines?country="))
+        mockMvc.perform(get("/api/wines?country=").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$", hasSize(equalTo(2))));
     }
@@ -153,7 +149,7 @@ class WineControllerIT {
     void getById_whenPresent_returnsWine() throws Exception {
         Long wineId = addWineToWinery("Test Wine2", "Spain", 2021, BigDecimal.valueOf(11));
 
-        mockMvc.perform(get("/api/wines/{id}", wineId))
+        mockMvc.perform(get("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("name", equalTo("Test Wine2")))
                .andExpect(jsonPath("country", equalTo("Spain")))
@@ -166,7 +162,7 @@ class WineControllerIT {
     @Test
     void getById_whenMissing_returns404() throws Exception {
 
-        mockMvc.perform(get("/api/wines/9999"))
+        mockMvc.perform(get("/api/wines/9999").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.error").value(containsString("Wine not found:")));
     }
@@ -177,6 +173,7 @@ class WineControllerIT {
         WineCreateRequest request = new WineCreateRequest("Feteasca Neagra", 9999L, "Moldova", 2022, BigDecimal.valueOf(150));
 
         mockMvc.perform(post("/api/wines").contentType(MediaType.APPLICATION_JSON)
+                                          .with(httpBasic("admin", "adminpass"))
                                           .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
@@ -187,7 +184,7 @@ class WineControllerIT {
     void getPaged_withDefaults_returnsPage() throws Exception {
         addWinesToWinery(6, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16));
 
-        mockMvc.perform(get("/api/wines/paged"))
+        mockMvc.perform(get("/api/wines/paged").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.content").exists())
                .andExpect(jsonPath("$.content").isArray())
@@ -201,7 +198,7 @@ class WineControllerIT {
     void getPaged_withCustomPageAndSize_returnsCorrectSlice() throws Exception {
         addWinesToWinery(12, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16));
 
-        mockMvc.perform(get("/api/wines/paged?page=1&size=5"))
+        mockMvc.perform(get("/api/wines/paged?page=1&size=5").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.content", hasSize(5)))
                .andExpect(jsonPath("$.number", equalTo(1)))
@@ -218,7 +215,7 @@ class WineControllerIT {
         addWineToWinery("B_Wine", "Spain", 2021, BigDecimal.valueOf(11));
         addWineToWinery("C_Wine", "Spain", 2021, BigDecimal.valueOf(11));
 
-        mockMvc.perform(get("/api/wines/paged?sort=name"))
+        mockMvc.perform(get("/api/wines/paged?sort=name").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.content[0].name", equalTo("A_Wine")))
                .andExpect(jsonPath("$.content[1].name", equalTo("B_Wine")))
@@ -236,12 +233,13 @@ class WineControllerIT {
                               .build();
 
         Long updatedWineryId = wineryRepository.save(winery)
-                                   .getId();
+                                               .getId();
 
         WineUpdateRequest request = new WineUpdateRequest("Test Wine2", updatedWineryId, "Moldova", 2021, BigDecimal.valueOf(11));
 
-        mockMvc.perform(put("/api/wines/{id}", wineId).contentType(MediaType.APPLICATION_JSON)
-                                                           .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(put("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
+                                                      .contentType(MediaType.APPLICATION_JSON)
+                                                      .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.name", equalTo("Test Wine2")))
                .andExpect(jsonPath("$.winery.id", equalTo(updatedWineryId.intValue())))
@@ -255,12 +253,11 @@ class WineControllerIT {
 
     @Test
     void updateWine_whenMissing_returns404() throws Exception {
-        WineUpdateRequest request =
-                new WineUpdateRequest("Wine", wineryId, "Moldova", 2022, BigDecimal.TEN);
+        WineUpdateRequest request = new WineUpdateRequest("Wine", wineryId, "Moldova", 2022, BigDecimal.TEN);
 
-        mockMvc.perform(put("/api/wines/9999")
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(put("/api/wines/9999").with(httpBasic("admin", "adminpass"))
+                                              .contentType(MediaType.APPLICATION_JSON)
+                                              .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.error").value(containsString("Wine not found")));
     }
@@ -269,12 +266,11 @@ class WineControllerIT {
     void updateWine_whenWineryMissing_returns404() throws Exception {
         Long wineId = addWineToWinery("Wine", "Moldova", 2022, BigDecimal.TEN);
 
-        WineUpdateRequest request =
-                new WineUpdateRequest("Wine", 9999L, "Moldova", 2022, BigDecimal.TEN);
+        WineUpdateRequest request = new WineUpdateRequest("Wine", 9999L, "Moldova", 2022, BigDecimal.TEN);
 
-        mockMvc.perform(put("/api/wines/{id}", wineId)
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(put("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
+                                                      .contentType(MediaType.APPLICATION_JSON)
+                                                      .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.error").value(containsString("Winery not found")));
     }
@@ -288,17 +284,11 @@ class WineControllerIT {
         Long wineBId = addWineToWinery("Rara Neagra", "Moldova", 2021, BigDecimal.valueOf(120));
 
         // Update Wine B to collide with Wine A (same name + year + wineryId)
-        WineUpdateRequest request = new WineUpdateRequest(
-                "Feteasca Neagra",
-                wineryId,
-                "Moldova",
-                2022,
-                BigDecimal.valueOf(150)
-        );
+        WineUpdateRequest request = new WineUpdateRequest("Feteasca Neagra", wineryId, "Moldova", 2022, BigDecimal.valueOf(150));
 
-        mockMvc.perform(put("/api/wines/{id}", wineBId)
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(put("/api/wines/{id}", wineBId).with(httpBasic("admin", "adminpass"))
+                                                       .contentType(MediaType.APPLICATION_JSON)
+                                                       .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isConflict())
                .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
     }
@@ -308,13 +298,13 @@ class WineControllerIT {
     void deleteWine_whenPresent_returns204() throws Exception {
         Long wineId = addWineToWinery("Wine", "Moldova", 2022, BigDecimal.TEN);
 
-        mockMvc.perform(delete("/api/wines/{id}", wineId))
+        mockMvc.perform(delete("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass")))
                .andExpect(status().isNoContent());
     }
 
     @Test
     void deleteWine_whenMissing_returns404() throws Exception {
-        mockMvc.perform(delete("/api/wines/9999"))
+        mockMvc.perform(delete("/api/wines/9999").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isNotFound())
                .andExpect(jsonPath("$.error").value(containsString("Wine not found")));
     }
