@@ -12,7 +12,8 @@ public class WineryMapper {
         return new WineryResponse(
                 winery.getId(),
                 winery.getName(),
-                winery.getCountry()
+                winery.getCountry(),
+                winery.getVersion()
         );
     }
 

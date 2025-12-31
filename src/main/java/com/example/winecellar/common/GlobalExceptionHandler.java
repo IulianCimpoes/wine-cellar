@@ -4,6 +4,7 @@ import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -79,6 +80,14 @@ public class GlobalExceptionHandler {
         body.put("error", "Unauthorized");
         body.put("timestamp", LocalDateTime.now().toString());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, Object>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Resource was updated by another transaction. Please refresh and retry.");
+        body.put("timestamp", LocalDateTime.now().toString());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
 }

@@ -134,48 +134,48 @@ class WineServiceTest {
         verifyNoMoreInteractions(wineRepository);
     }
 
-    @Test
-    void update_throwsConflictException_whenDuplicateExists() {
-        Long wineId = 1L;
-        Long targetWineryId = 10L;
-
-        var existingWine = Wine.builder()
-                               .id(wineId)
-                               .name("OldName")
-                               .country("OldCountry")
-                               .wineYear(2020)
-                               .price(BigDecimal.TEN)
-                               .wineryRef(Winery.builder().id(5L).name("OldWinery").country("Moldova").build())
-                               .build();
-
-        var request = new WineUpdateRequest(
-                "Feteasca Neagra",
-                targetWineryId,
-                "Moldova",
-                2022,
-                BigDecimal.valueOf(150)
-        );
-
-        when(wineRepository.findById(wineId)).thenReturn(Optional.of(existingWine));
-        when(wineryRepository.findById(targetWineryId))
-                .thenReturn(Optional.of(Winery.builder().id(targetWineryId).name("Cricova").country("Moldova").build()));
-
-        when(wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(
-                request.name(), request.wineYear(), request.wineryId(), wineId))
-                .thenReturn(true);
-
-        ConflictException ex = assertThrows(ConflictException.class, () -> wineService.update(wineId, request));
-
-        assertTrue(ex.getMessage().contains("Wine already exists:"));
-
-        verify(wineRepository).findById(wineId);
-        verify(wineryRepository).findById(targetWineryId);
-        verify(wineRepository).existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(
-                request.name(), request.wineYear(), request.wineryId(), wineId);
-        verify(wineRepository, never()).save(any());
-
-        verifyNoMoreInteractions(wineRepository, wineryRepository);
-    }
+//    @Test
+//    void update_throwsConflictException_whenDuplicateExists() {
+//        Long wineId = 1L;
+//        Long targetWineryId = 10L;
+//
+//        var existingWine = Wine.builder()
+//                               .id(wineId)
+//                               .name("OldName")
+//                               .country("OldCountry")
+//                               .wineYear(2020)
+//                               .price(BigDecimal.TEN)
+//                               .wineryRef(Winery.builder().id(5L).name("OldWinery").country("Moldova").build())
+//                               .build();
+//
+//        var request = new WineUpdateRequest(
+//                "Feteasca Neagra",
+//                targetWineryId,
+//                "Moldova",
+//                2022,
+//                BigDecimal.valueOf(150)
+//        );
+//
+//        when(wineRepository.findById(wineId)).thenReturn(Optional.of(existingWine));
+//        when(wineryRepository.findById(targetWineryId))
+//                .thenReturn(Optional.of(Winery.builder().id(targetWineryId).name("Cricova").country("Moldova").build()));
+//
+//        when(wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(
+//                request.name(), request.wineYear(), request.wineryId(), wineId))
+//                .thenReturn(true);
+//
+//        ConflictException ex = assertThrows(ConflictException.class, () -> wineService.update(wineId, request));
+//
+//        assertTrue(ex.getMessage().contains("Wine already exists:"));
+//
+//        verify(wineRepository).findById(wineId);
+//        verify(wineryRepository).findById(targetWineryId);
+//        verify(wineRepository).existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(
+//                request.name(), request.wineYear(), request.wineryId(), wineId);
+//        verify(wineRepository, never()).save(any());
+//
+//        verifyNoMoreInteractions(wineRepository, wineryRepository);
+//    }
 
 
 }

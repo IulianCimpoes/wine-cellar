@@ -4,10 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(
-        name = "winery",
-        uniqueConstraints = @UniqueConstraint(name = "uk_winery_name_country", columnNames = {"name", "country"})
-)
+@Table(name = "winery", uniqueConstraints = @UniqueConstraint(name = "uk_winery_name_country", columnNames = {"name", "country"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,4 +18,8 @@ public class Winery {
 
     private String name;
     private String country;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }

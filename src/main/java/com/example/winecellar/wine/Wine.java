@@ -27,5 +27,9 @@ public class Wine {
     private String country;
     private int wineYear;
     private BigDecimal price;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 }
 

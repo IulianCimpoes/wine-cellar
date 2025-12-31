@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -53,6 +54,10 @@ public class WineryService {
     @PreAuthorize("hasRole('ADMIN')")
     public Winery update(Long id, WineryUpdateRequest request) {
         Winery winery = findById(id);
+
+        if (!Objects.equals(winery.getVersion(), request.version())) {
+            throw new ConflictException("Winery was updated by another transaction. Please refresh and retry.");
+        }
 
         if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(request.name(), request.country(), winery.getId())) {
             throw new ConflictException("Winery already exists: " + winery.getName() + " (" + winery.getCountry() + ")");

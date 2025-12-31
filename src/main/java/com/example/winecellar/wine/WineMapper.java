@@ -23,7 +23,15 @@ public class WineMapper {
         if (wine == null) {
             return null;
         }
-        return new WineResponse(wine.getId(), wine.getName(), wineryMapper.toResponse(wine.getWineryRef()), wine.getCountry(), wine.getWineYear(), wine.getPrice());
+        return new WineResponse(
+                wine.getId(),
+                wine.getName(),
+                wineryMapper.toResponse(wine.getWineryRef()),
+                wine.getCountry(),
+                wine.getWineYear(),
+                wine.getPrice(),
+                wine.getVersion()
+        );
     }
 
     public List<WineResponse> toResponseList(List<Wine> wines) {

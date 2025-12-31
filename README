@@ -126,6 +126,8 @@ Read operations use @Transactional(readOnly = true)
 
 Write operations are atomic and consistent
 
+Optimistic locking (@Version) prevents lost updates; update requests include version, stale updates return 409 Conflict.
+
 This follows Spring/JPA best practices and avoids hidden transactional behavior.
 
 -----------------------------------------------------------------------------------------------------------------------

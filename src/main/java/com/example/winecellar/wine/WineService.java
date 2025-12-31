@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -91,6 +92,10 @@ public class WineService {
         Wine wine = findById(id);
         Winery winery = wineryRepository.findById(request.wineryId())
                                         .orElseThrow(() -> new NotFoundException("Winery not found: " + request.wineryId()));
+
+        if (!Objects.equals(wine.getVersion(), request.version())) {
+            throw new ConflictException("Winery was updated by another transaction. Please refresh and retry.");
+        }
 
         if (wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(request.name(), request.wineYear(), request.wineryId(), id)) {
             throw new ConflictException("Wine already exists: " + request.name() + " (" + request.wineYear() + ") for winery " + request.wineryId());

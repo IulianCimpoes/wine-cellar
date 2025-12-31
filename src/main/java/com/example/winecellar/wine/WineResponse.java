@@ -14,5 +14,6 @@ public record WineResponse(
         WineryResponse winery,
         String country,
         int wineYear,
-        BigDecimal price
+        BigDecimal price,
+        Long version
 ) {}
