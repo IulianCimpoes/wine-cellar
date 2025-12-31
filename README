@@ -1,0 +1,190 @@
+WineCellar API
+A Spring Boot REST application built as part of an internal transition from Automation QA to Java Backend Developer and
+designed to demonstrate production-ready backend skills.
+The application manages wines and wineries, exposing a clean REST API with full CRUD support,
+pagination, validation, error handling, and comprehensive test coverage.
+
+-----------------------------------------------------------------------------------------------------------------------
+Purpose
+This project was built to:
+Demonstrate practical Spring Boot backend development
+Apply clean architecture and layering
+Enforce correct REST semantics (status codes, error contracts, pagination)
+
+-----------------------------------------------------------------------------------------------------------------------
+Tech Stack
+
+- Java 17
+- Spring Boot
+- Spring Web (REST)
+- Spring Data JPA (Hibernate)
+- Spring Security
+- H2 (in-memory database for tests)
+- OpenAPI / Swagger (springdoc)
+- JUnit 5, Mockito, MockMvc
+
+-----------------------------------------------------------------------------------------------------------------------
+Domain Model
+
+Winery
+id
+name
+country
+Uniqueness rule: (name, country)
+
+Wine
+id
+name
+wineYear
+country
+price
+winery
+Uniqueness rule: (name, wineYear, winery)
+
+-----------------------------------------------------------------------------------------------------------------------
+REST API Overview
+
+Wineries
+
+POST /api/wineries – create winery
+
+GET /api/wineries – list all wineries
+
+GET /api/wineries/paged – paginated & sorted wineries
+
+GET /api/wineries/{id} – get winery by id
+
+PUT /api/wineries/{id} – update winery
+
+DELETE /api/wineries/{id} – delete winery
+
+GET /api/wineries/{id}/wines – list wines for winery
+
+GET /api/wineries/{id}/wines/paged – paged wines for winery
+
+Wines
+
+POST /api/wines – create wine
+
+GET /api/wines – list wines (optional country filter)
+
+GET /api/wines/paged – paginated & sorted wines
+
+GET /api/wines/{id} – get wine by id
+
+PUT /api/wines/{id} – update wine
+
+DELETE /api/wines/{id} – delete wine
+
+-----------------------------------------------------------------------------------------------------------------------
+Pagination & Sorting
+
+All paged endpoints support:
+
+page (default 0)
+
+size (default 5)
+
+sort (default name)
+
+Example:
+
+GET /api/wineries/paged?page=1&size=5&sort=name
+
+-----------------------------------------------------------------------------------------------------------------------
+Error Handling
+
+Centralized error handling using @RestControllerAdvice.
+
+Error responses:
+
+400 Bad Request – validation errors
+
+404 Not Found – missing resources
+
+409 Conflict – domain conflicts (duplicates)
+
+Example error payload:
+
+{
+  "error": "Wine already exists: Feteasca Neagra (2022) for winery 1",
+  "timestamp": "2025-09-25T12:34:56"
+}
+
+Domain Exceptions
+
+NotFoundException
+
+ConflictException
+
+-----------------------------------------------------------------------------------------------------------------------
+Transactions
+
+@Transactional applied at service class level
+
+Read operations use @Transactional(readOnly = true)
+
+Write operations are atomic and consistent
+
+This follows Spring/JPA best practices and avoids hidden transactional behavior.
+
+-----------------------------------------------------------------------------------------------------------------------
+Security
+
+The API is secured using Spring Security with HTTP Basic authentication in a stateless configuration.
+
+Roles:
+- USER – read-only access
+- ADMIN – full write access
+
+Authorization rules:
+- GET endpoints: USER or ADMIN
+- POST / PUT / DELETE endpoints: ADMIN only
+
+Authorization is enforced at the service layer using @PreAuthorize to ensure
+business rules are protected regardless of controller entry point.
+
+Security behavior is verified through integration tests covering:
+- 401 Unauthorized (unauthenticated requests)
+- 403 Forbidden (insufficient role)
+- Successful access for authorized users
+
+-----------------------------------------------------------------------------------------------------------------------
+Testing Strategy
+
+Unit Tests
+Service-level tests using Mockito
+Cover:
+happy paths
+not-found scenarios
+conflict scenarios
+repository interaction verification
+
+Integration Tests
+@SpringBootTest + MockMvc
+Cover:
+full REST API behavior
+validation
+pagination & sorting
+error handling
+uniqueness constraints
+
+-----------------------------------------------------------------------------------------------------------------------
+API Documentation (Swagger)
+
+Swagger UI is available at:
+http://localhost:8080/swagger-ui.html
+
+OpenAPI spec:
+http://localhost:8080/v3/api-docs
+
+-----------------------------------------------------------------------------------------------------------------------
+Architectural Principles Applied
+
+Thin controllers (orchestration only)
+Pure mappers (no DB/service access)
+Business rules enforced at service layer
+Clear separation of concerns
+Backward-compatible API evolution
+Clean code & refactoring under test protection
+
