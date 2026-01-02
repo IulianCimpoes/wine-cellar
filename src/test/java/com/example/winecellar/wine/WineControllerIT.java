@@ -225,7 +225,8 @@ class WineControllerIT {
     //PUT /api/wines/{id} — success
     @Test
     void updateWine_whenPresent_returnsUpdatedWine() throws Exception {
-        Long wineId = addWineToWinery("Test Wine1", "Spain", 2024, BigDecimal.valueOf(16), 1L);
+        Long initialVersion = 1L;
+        Long wineId = addWineToWinery("Test Wine1", "Spain", 2024, BigDecimal.valueOf(16), initialVersion);
 
         Winery winery = Winery.builder()
                               .name("Winery1")
@@ -236,9 +237,7 @@ class WineControllerIT {
         Long updatedWineryId = wineryRepository.save(winery)
                                                .getId();
 
-        Long version = 1L;
-
-        WineUpdateRequest request = new WineUpdateRequest("Test Wine2", updatedWineryId, "Moldova", 2021, BigDecimal.valueOf(11), 1L);
+        WineUpdateRequest request = new WineUpdateRequest("Test Wine2", updatedWineryId, "Moldova", 2021, BigDecimal.valueOf(11), initialVersion);
 
         mockMvc.perform(put("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
                                                       .contentType(MediaType.APPLICATION_JSON)
@@ -251,50 +250,51 @@ class WineControllerIT {
                .andExpect(jsonPath("$.country", equalTo("Moldova")))
                .andExpect(jsonPath("$.wineYear", equalTo(2021)))
                .andExpect(jsonPath("$.price", equalTo(11)))
+               .andExpect(jsonPath("$.version", greaterThan(initialVersion.intValue())))
                .andExpect(jsonPath("$.id", equalTo(wineId.intValue())));
     }
 
-//    @Test
-//    void updateWine_whenMissing_returns404() throws Exception {
-//        WineUpdateRequest request = new WineUpdateRequest("Wine", wineryId, "Moldova", 2022, BigDecimal.TEN);
-//
-//        mockMvc.perform(put("/api/wines/9999").with(httpBasic("admin", "adminpass"))
-//                                              .contentType(MediaType.APPLICATION_JSON)
-//                                              .content(objectMapper.writeValueAsString(request)))
-//               .andExpect(status().isNotFound())
-//               .andExpect(jsonPath("$.error").value(containsString("Wine not found")));
-//    }
+    @Test
+    void updateWine_whenMissing_returns404() throws Exception {
+        WineUpdateRequest request = new WineUpdateRequest("Wine", wineryId, "Moldova", 2022, BigDecimal.TEN,  1L);
 
-//    @Test
-//    void updateWine_whenWineryMissing_returns404() throws Exception {
-//        Long wineId = addWineToWinery("Wine", "Moldova", 2022, BigDecimal.TEN);
-//
-//        WineUpdateRequest request = new WineUpdateRequest("Wine", 9999L, "Moldova", 2022, BigDecimal.TEN);
-//
-//        mockMvc.perform(put("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
-//                                                      .contentType(MediaType.APPLICATION_JSON)
-//                                                      .content(objectMapper.writeValueAsString(request)))
-//               .andExpect(status().isNotFound())
-//               .andExpect(jsonPath("$.error").value(containsString("Winery not found")));
-//    }
+        mockMvc.perform(put("/api/wines/9999").with(httpBasic("admin", "adminpass"))
+                                              .contentType(MediaType.APPLICATION_JSON)
+                                              .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Wine not found")));
+    }
 
-//    @Test
-//    void updateWine_returns409_whenDuplicate() throws Exception {
-//        // Wine A: target “unique key”
-//        Long wineAId = addWineToWinery("Feteasca Neagra", "Moldova", 2022, BigDecimal.valueOf(150));
-//
-//        // Wine B: different initially
-//        Long wineBId = addWineToWinery("Rara Neagra", "Moldova", 2021, BigDecimal.valueOf(120));
-//
-//        // Update Wine B to collide with Wine A (same name + year + wineryId)
-//        WineUpdateRequest request = new WineUpdateRequest("Feteasca Neagra", wineryId, "Moldova", 2022, BigDecimal.valueOf(150));
-//
-//        mockMvc.perform(put("/api/wines/{id}", wineBId).with(httpBasic("admin", "adminpass"))
-//                                                       .contentType(MediaType.APPLICATION_JSON)
-//                                                       .content(objectMapper.writeValueAsString(request)))
-//               .andExpect(status().isConflict())
-//               .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
-//    }
+    @Test
+    void updateWine_whenWineryMissing_returns404() throws Exception {
+        Long wineId = addWineToWinery("Wine", "Moldova", 2022, BigDecimal.TEN, 1L);
+
+        WineUpdateRequest request = new WineUpdateRequest("Wine", 9999L, "Moldova", 2022, BigDecimal.TEN, 1L);
+
+        mockMvc.perform(put("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
+                                                      .contentType(MediaType.APPLICATION_JSON)
+                                                      .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Winery not found")));
+    }
+
+    @Test
+    void updateWine_returns409_whenDuplicate() throws Exception {
+        // Wine A: target “unique key”
+        Long wineAId = addWineToWinery("Feteasca Neagra", "Moldova", 2022, BigDecimal.valueOf(150), 1L);
+
+        // Wine B: different initially
+        Long wineBId = addWineToWinery("Rara Neagra", "Moldova", 2021, BigDecimal.valueOf(120), 1L);
+
+        // Update Wine B to collide with Wine A (same name + year + wineryId)
+        WineUpdateRequest request = new WineUpdateRequest("Feteasca Neagra", wineryId, "Moldova", 2022, BigDecimal.valueOf(150), 1L);
+
+        mockMvc.perform(put("/api/wines/{id}", wineBId).with(httpBasic("admin", "adminpass"))
+                                                       .contentType(MediaType.APPLICATION_JSON)
+                                                       .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
+    }
 
 
     @Test

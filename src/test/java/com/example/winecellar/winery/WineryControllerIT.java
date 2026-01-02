@@ -96,26 +96,27 @@ class WineryControllerIT {
     //GET /api/wineries returns list
     @Test
     void getAll_returnsList() throws Exception {
-        addWinery("Fautorul", "Moldova");
-        addWinery("Cricova", "Moldova");
+        addWinery("Fautorul", "Moldova", 1L);
+        addWinery("Cricova", "Moldova", 1L);
 
         mockMvc.perform(get("/api/wineries").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$", hasSize(2)))
                .andExpect(jsonPath("$[*].id", everyItem(notNullValue())))
                .andExpect(jsonPath("$[*].name", everyItem(notNullValue())))
+               .andExpect(jsonPath("$[*].version", everyItem(notNullValue())))
                .andExpect(jsonPath("$[*].country", everyItem(notNullValue())));
     }
 
     //GET /api/wineries/paged defaults
     @Test
     void getPaged_withDefaults_returnsPage() throws Exception {
-        addWinery("Fautorul", "Moldova");
-        addWinery("Cricova", "Moldova");
-        addWinery("Chateau", "Moldova");
-        addWinery("Milesti", "Moldova");
-        addWinery("Purcari", "Moldova");
-        addWinery("Asconi", "Moldova");
+        addWinery("Fautorul", "Moldova", 1L);
+        addWinery("Cricova", "Moldova", 1L);
+        addWinery("Chateau", "Moldova", 1L);
+        addWinery("Milesti", "Moldova", 1L);
+        addWinery("Purcari", "Moldova", 1L);
+        addWinery("Asconi", "Moldova", 1L);
 
         mockMvc.perform(get("/api/wineries/paged").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
@@ -131,18 +132,18 @@ class WineryControllerIT {
     //GET /api/wineries/paged?page=1&size=5
     @Test
     void getPaged_withCustomPageAndSize_returnsCorrectSlice() throws Exception {
-        addWinery("Fautorul", "Moldova");
-        addWinery("Cricova", "Moldova");
-        addWinery("Chateau", "Moldova");
-        addWinery("Milesti", "Moldova");
-        addWinery("Purcari", "Moldova");
-        addWinery("Asconi", "Moldova");
-        addWinery("Tomai", "Moldova");
-        addWinery("Davidescu", "Moldova");
-        addWinery("Radacini", "Moldova");
-        addWinery("Vin1", "Moldova");
-        addWinery("Vin2", "Moldova");
-        addWinery("Vin3", "Moldova");
+        addWinery("Fautorul", "Moldova", 1L);
+        addWinery("Cricova", "Moldova", 1L);
+        addWinery("Chateau", "Moldova", 1L);
+        addWinery("Milesti", "Moldova", 1L);
+        addWinery("Purcari", "Moldova", 1L);
+        addWinery("Asconi", "Moldova", 1L);
+        addWinery("Tomai", "Moldova", 1L);
+        addWinery("Davidescu", "Moldova", 1L);
+        addWinery("Radacini", "Moldova", 1L);
+        addWinery("Vin1", "Moldova", 1L);
+        addWinery("Vin2", "Moldova", 1L);
+        addWinery("Vin3", "Moldova", 1L);
 
         mockMvc.perform(get("/api/wineries/paged?page=1&size=5").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
@@ -158,9 +159,9 @@ class WineryControllerIT {
     //GET /api/wineries/paged?sort=name
     @Test
     void getPaged_whenSortByName_sortsAscending() throws Exception {
-        addWinery("Vin1", "Moldova");
-        addWinery("Vin2", "Moldova");
-        addWinery("Vin3", "Moldova");
+        addWinery("Vin1", "Moldova", 1L);
+        addWinery("Vin2", "Moldova", 1L);
+        addWinery("Vin3", "Moldova", 1L);
 
         mockMvc.perform(get("/api/wineries/paged?sort=name").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
@@ -175,7 +176,7 @@ class WineryControllerIT {
     //GET /api/wineries/{id} — success
     @Test
     void getById_whenPresent_returnsWinery() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
 
         mockMvc.perform(get("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
@@ -193,45 +194,48 @@ class WineryControllerIT {
     }
 
     //PUT /api/wineries/{id} — success
-//    @Test
-//    void update_whenPresent_returnsUpdatedWinery() throws Exception {
-//        Long wineryId = addWinery("Fautorul", "Moldova");
-//
-//        WineryUpdateRequest request = new WineryUpdateRequest("Cricova", "Spain");
-//
-//        mockMvc.perform(put("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass"))
-//                                                           .contentType(MediaType.APPLICATION_JSON)
-//                                                           .content(objectMapper.writeValueAsString(request)))
-//               .andExpect(status().isOk())
-//               .andExpect(jsonPath("$.name", equalTo("Cricova")))
-//               .andExpect(jsonPath("$.country", equalTo("Spain")))
-//               .andExpect(jsonPath("$.id", equalTo(wineryId.intValue())));
-//    }
+    @Test
+    void update_whenPresent_returnsUpdatedWinery() throws Exception {
+        Long currentVersion = 1L;
+        Long wineryId = addWinery("Fautorul", "Moldova", currentVersion);
+
+        WineryUpdateRequest request = new WineryUpdateRequest("Cricova", "Spain", currentVersion);
+
+        mockMvc.perform(put("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass"))
+                                                           .contentType(MediaType.APPLICATION_JSON)
+                                                           .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.name", equalTo("Cricova")))
+               .andExpect(jsonPath("$.country", equalTo("Spain")))
+               .andExpect(jsonPath("$.version", greaterThan(currentVersion.intValue())))
+               .andExpect(jsonPath("$.id", equalTo(wineryId.intValue())));
+    }
 
     //PUT /api/wineries/{id} — fails for winery if wineries with given name country exists
-//    @Test
-//    void update_returns409_whenDuplicate() throws Exception {
-//        Long winery1Id = addWinery("Cricova", "Moldova");
-//        Long winery2Id = addWinery("Milesti", "Moldova");
-//
-//        WineryUpdateRequest request = new WineryUpdateRequest("Cricova", "Moldova");
-//
-//        mockMvc.perform(put("/api/wineries/{id}", winery2Id).with(httpBasic("admin", "adminpass"))
-//                                                            .contentType(MediaType.APPLICATION_JSON)
-//                                                            .content(objectMapper.writeValueAsString(request)))
-//               .andExpect(status().isConflict())
-//               .andExpect(jsonPath("$.error").value(containsString("Winery already exists:")));
-//    }
+    @Test
+    void update_returns409_whenDuplicate() throws Exception {
+        Long winery1Id = addWinery("Cricova", "Moldova", 1L);
+        Long winery2Id = addWinery("Milesti", "Moldova", 1L);
+
+        WineryUpdateRequest request = new WineryUpdateRequest("Cricova", "Moldova", 1L);
+
+        mockMvc.perform(put("/api/wineries/{id}", winery2Id).with(httpBasic("admin", "adminpass"))
+                                                            .contentType(MediaType.APPLICATION_JSON)
+                                                            .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error").value(containsString("Winery already exists:")));
+    }
 
     //PUT /api/wineries/{id} — validation fails → 400
     @Test
     void update_returns400_whenValidationFails() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
 
         String badJson = """
                 {
                   "name": "",
-                  "country": ""
+                  "country": "",
+                  "version": 1
                 }
                 """;
 
@@ -245,21 +249,21 @@ class WineryControllerIT {
     }
 
     //PUT /api/wineries/{id} — not found → 404
-//    @Test
-//    void update_whenMissing_returns404() throws Exception {
-//        WineryUpdateRequest request = new WineryUpdateRequest("Cricova", "Spain");
-//
-//        mockMvc.perform(put("/api/wineries/9999").with(httpBasic("admin", "adminpass"))
-//                                                 .contentType(MediaType.APPLICATION_JSON)
-//                                                 .content(objectMapper.writeValueAsString(request)))
-//               .andExpect(status().isNotFound())
-//               .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
-//    }
+    @Test
+    void update_whenMissing_returns404() throws Exception {
+        WineryUpdateRequest request = new WineryUpdateRequest("Cricova", "Spain", 1L);
+
+        mockMvc.perform(put("/api/wineries/9999").with(httpBasic("admin", "adminpass"))
+                                                 .contentType(MediaType.APPLICATION_JSON)
+                                                 .content(objectMapper.writeValueAsString(request)))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
+    }
 
     //DELETE /api/wineries/{id}
     @Test
     void delete_whenNoWines_returns204() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
 
         mockMvc.perform(delete("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass")))
                .andExpect(status().isNoContent());
@@ -268,7 +272,7 @@ class WineryControllerIT {
     //DELETE /api/wineries/{id} — conflict (has wines) → 409
     @Test
     void delete_whenHasWines_returns409() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
         wineRepository.save(Wine.builder()
                                 .name("Wine1")
                                 .wineryRef(wineryRepository.findById(wineryId)
@@ -276,6 +280,7 @@ class WineryControllerIT {
                                 .country("Moldova")
                                 .wineYear(2020)
                                 .price(BigDecimal.valueOf(11))
+                                .version(1L)
                                 .build());
 
         mockMvc.perform(delete("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass")))
@@ -294,7 +299,7 @@ class WineryControllerIT {
     //GET /api/wineries/{id}/wines — success returns list
     @Test
     void getWinesForWinery_whenPresent_returnsWineList() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
         wineRepository.save(Wine.builder()
                                 .name("Wine1")
                                 .wineryRef(wineryRepository.findById(wineryId)
@@ -302,6 +307,7 @@ class WineryControllerIT {
                                 .country("Moldova")
                                 .wineYear(2020)
                                 .price(BigDecimal.valueOf(11))
+                                .version(1L)
                                 .build());
 
         wineRepository.save(Wine.builder()
@@ -311,6 +317,7 @@ class WineryControllerIT {
                                 .country("Moldova")
                                 .wineYear(2020)
                                 .price(BigDecimal.valueOf(11))
+                                .version(1L)
                                 .build());
 
         mockMvc.perform(get("/api/wineries/{id}/wines", wineryId).with(httpBasic("admin", "adminpass")))
@@ -332,8 +339,8 @@ class WineryControllerIT {
     //GET /api/wineries/{id}/wines/paged
     @Test
     void getWinesForWineryPaged_withDefaults_returnsPage() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
-        addWinesToWinery(6, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
+        addWinesToWinery(6, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16), wineryId, 1L);
 
         mockMvc.perform(get("/api/wineries/{id}/wines/paged", wineryId).with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
@@ -350,8 +357,8 @@ class WineryControllerIT {
     //GET /api/wineries/{id}/wines/paged?page=1&size=5
     @Test
     void getWinesForWineryPaged_withCustomPageAndSize_returnsCorrectSlice() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
-        addWinesToWinery(12, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
+        addWinesToWinery(12, "Test Wine12", "Spain", 2024, BigDecimal.valueOf(16), wineryId, 1L);
 
         mockMvc.perform(get("/api/wineries/{id}/wines/paged?page=1&size=5", wineryId).with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
@@ -369,10 +376,10 @@ class WineryControllerIT {
     //GET /api/wineries/{id}/wines/paged?size=3&sort=name
     @Test
     void getWinesForWineryPaged_whenSortByName_sortsAscending() throws Exception {
-        Long wineryId = addWinery("Fautorul", "Moldova");
-        addWineToWinery("Test Wine1", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
-        addWineToWinery("Test Wine3", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
-        addWineToWinery("Test Wine2", "Spain", 2024, BigDecimal.valueOf(16), wineryId);
+        Long wineryId = addWinery("Fautorul", "Moldova", 1L);
+        addWineToWinery("Test Wine1", "Spain", 2024, BigDecimal.valueOf(16), wineryId, 1L);
+        addWineToWinery("Test Wine3", "Spain", 2024, BigDecimal.valueOf(16), wineryId, 1L);
+        addWineToWinery("Test Wine2", "Spain", 2024, BigDecimal.valueOf(16), wineryId, 1L);
 
         mockMvc.perform(get("/api/wineries/{id}/wines/paged?size=3&sort=name", wineryId).with(httpBasic("admin", "adminpass")))
                .andExpect(status().isOk())
@@ -390,21 +397,22 @@ class WineryControllerIT {
                .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
     }
 
-    private Long addWinery(String name, String country) throws Exception {
+    private Long addWinery(String name, String country, Long version) throws Exception {
         return wineryRepository.save(Winery.builder()
                                            .name(name)
                                            .country(country)
+                                           .version(version)
                                            .build())
                                .getId();
     }
 
-    private void addWinesToWinery(int winesCount, String name, String country, int wineYear, BigDecimal price, Long wineryId) {
+    private void addWinesToWinery(int winesCount, String name, String country, int wineYear, BigDecimal price, Long wineryId, Long version) throws Exception {
         IntStream.range(0, winesCount)
-                 .forEach(i -> addWineToWinery(name, country, wineYear, price, wineryId));
+                 .forEach(i -> addWineToWinery(name, country, wineYear, price, wineryId, version));
     }
 
 
-    private long addWineToWinery(String name, String country, int wineYear, BigDecimal price, Long wineryId) {
+    private long addWineToWinery(String name, String country, int wineYear, BigDecimal price, Long wineryId, Long version) {
         return wineRepository.save(Wine.builder()
                                        .name(name)
                                        .wineryRef(wineryRepository.findById(wineryId)
@@ -412,6 +420,7 @@ class WineryControllerIT {
                                        .country(country)
                                        .wineYear(wineYear)
                                        .price(price)
+                                       .version(version)
                                        .build())
                              .getId();
     }

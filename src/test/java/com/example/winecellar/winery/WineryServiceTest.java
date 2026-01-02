@@ -75,33 +75,35 @@ class WineryServiceTest {
 
     }
 
-//    @Test
-//    void updateWinery_whenPresent() {
-//        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
-//
-//        when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
-//        when(wineryRepository.save(winery)).thenReturn(winery);
-//
-//        var result = wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova"));
-//
-//        assertEquals(1L, result.getId());
-//        assertEquals("Cricova", result.getName());
-//        verify(wineryRepository).save(winery);
-//        verify(wineryRepository).findById(1L);
-//        verify(wineryRepository).existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId());
-//        verifyNoMoreInteractions(wineryRepository);
-//    }
+    @Test
+    void updateWinery_whenPresent() {
+        Long version = 1L;
+        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").version(version).build();
 
-//    @Test
-//    void updateWinery_throwsNotFoundException_whenMissing() {
-//        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
-//
-//        NotFoundException ex = assertThrows(NotFoundException.class, () -> wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova")));
-//
-//        assertTrue(ex.getMessage().contains("Winery not found"));
-//        verify(wineryRepository).findById(1L);
-//        verifyNoMoreInteractions(wineryRepository);
-//    }
+        when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
+        when(wineryRepository.save(winery)).thenReturn(winery);
+
+        var result = wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova",  version));
+
+        assertEquals(1L, result.getId());
+        assertEquals("Cricova", result.getName());
+        verify(wineryRepository).save(winery);
+        verify(wineryRepository).findById(1L);
+        verify(wineryRepository).existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId());
+        verifyNoMoreInteractions(wineryRepository);
+    }
+
+    @Test
+    void updateWinery_throwsNotFoundException_whenMissing() {
+        Long version = 1L;
+        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").version(version).build();
+
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> wineryService.update(1L, new WineryUpdateRequest("Cricova", "Moldova", version)));
+
+        assertTrue(ex.getMessage().contains("Winery not found"));
+        verify(wineryRepository).findById(1L);
+        verifyNoMoreInteractions(wineryRepository);
+    }
 
     @Test
     void deleteWinery_whenPresent_andHaveNoWines() {
@@ -160,19 +162,20 @@ class WineryServiceTest {
         verifyNoMoreInteractions(wineryRepository, wineRepository);
     }
 
-//    @Test
-//    void update_throwsConflictException_whenDuplicateExists() {
-//        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").build();
-//
-//        when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
-//        when(wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId())).thenReturn(true);
-//
-//        ConflictException ex = assertThrows(ConflictException.class,
-//                () -> wineryService.update(winery.getId(), new WineryUpdateRequest(winery.getName(), winery.getCountry())));
-//
-//        assertTrue(ex.getMessage().contains("Winery already exists:"));
-//        verify(wineryRepository).existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId());
-//        verify(wineryRepository, never()).save(any());
-//        verifyNoMoreInteractions(wineryRepository, wineRepository);
-//    }
+    @Test
+    void update_throwsConflictException_whenDuplicateExists() {
+        Long version = 1L;
+        var winery = Winery.builder().id(1L).name("Cricova").country("Moldova").version(version).build();
+
+        when(wineryRepository.findById(1L)).thenReturn(Optional.of(winery));
+        when(wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId())).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class,
+                () -> wineryService.update(winery.getId(), new WineryUpdateRequest(winery.getName(), winery.getCountry(), version)));
+
+        assertTrue(ex.getMessage().contains("Winery already exists:"));
+        verify(wineryRepository).existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(winery.getName(), winery.getCountry(), winery.getId());
+        verify(wineryRepository, never()).save(any());
+        verifyNoMoreInteractions(wineryRepository, wineRepository);
+    }
 }
