@@ -110,6 +110,47 @@ public class WineService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    public Wine patch(Long id, WinePatchRequest request) {
+        Wine wine = findById(id);
+
+        if (!Objects.equals(wine.getVersion(), request.version())) {
+            throw new ConflictException("Wine was updated by another transaction. Please refresh and retry.");
+        }
+
+        Winery winery = wine.getWineryRef();
+        if (request.wineryId() != null && !Objects.equals(winery.getId(), request.wineryId())) {
+            winery = wineryRepository.findById(request.wineryId()).orElseThrow(() -> new NotFoundException("Winery not found: " + request.wineryId()));
+        }
+
+        String newName = request.name() != null ? request.name() : wine.getName();
+        int newYear = request.wineYear() != null ? request.wineYear() : wine.getWineYear();
+
+        // Duplicate definition: (name, wineYear, winery)
+        if (wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(
+                newName, newYear, winery.getId(), id)) {
+            throw new ConflictException("Wine already exists: " + newName + " (" + newYear + ") for winery " + winery.getId());
+        }
+
+        // Apply partial updates
+        wine.setName(newName);
+        wine.setWineYear(newYear);
+
+        if (request.price() != null) {
+            wine.setPrice(request.price());
+        }
+        if (request.country() != null) {
+            wine.setCountry(request.country());
+        }
+        if (request.wineryId() != null) {
+            wine.setWineryRef(winery);
+        }
+
+        return wineRepository.save(wine);
+    }
+
+
+
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         findById(id);
         wineRepository.deleteById(id);

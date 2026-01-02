@@ -76,6 +76,8 @@ GET /api/wines/{id} – get wine by id
 
 PUT /api/wines/{id} – update wine
 
+PATCH /api/wineries/{id} – partial update wine (client sends only changed fields + version)
+
 DELETE /api/wines/{id} – delete wine
 
 -----------------------------------------------------------------------------------------------------------------------

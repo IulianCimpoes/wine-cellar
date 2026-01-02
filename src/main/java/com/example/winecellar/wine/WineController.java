@@ -59,6 +59,13 @@ public class WineController {
         return wineMapper.toResponse(wineService.update(id, request));
     }
 
+    @PatchMapping("/{id}")
+    public WineResponse patch(@PathVariable Long id,
+                              @Valid @RequestBody WinePatchRequest request) {
+        return wineMapper.toResponse(wineService.patch(id, request));
+    }
+
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {

@@ -301,15 +301,12 @@ class WineControllerIT {
 
     @Test
     void updateWine_returns409_whenVersionIsStale() throws Exception {
-        // Arrange: create winery + wine
-//        Long wineryId = addWinery("Cricova", "Moldova", 1L);
-
-        WineCreateRequest create = new WineCreateRequest("Cabernet", wineryId, "Moldova", 2019, new BigDecimal("120.00") );
+        WineCreateRequest create = new WineCreateRequest("Cabernet", wineryId, "Moldova", 2019, new BigDecimal("120.00"));
 
         MvcResult createResult = mockMvc.perform(post("/api/wines").with(httpBasic("admin", "adminpass"))
                                                                    .contentType(MediaType.APPLICATION_JSON)
                                                                    .content(objectMapper.writeValueAsString(create)))
-                                        .andExpect(status().isOk()) // change to isCreated() if your API returns 201
+                                        .andExpect(status().isOk())
                                         .andReturn();
 
         JsonNode created = objectMapper.readTree(createResult.getResponse()
@@ -317,7 +314,6 @@ class WineControllerIT {
         long wineId = created.get("id")
                              .asLong();
 
-        // Fetch wine to get version
         MvcResult getResult = mockMvc.perform(get("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass")))
                                      .andExpect(status().isOk())
                                      .andReturn();
@@ -345,6 +341,20 @@ class WineControllerIT {
                .andExpect(jsonPath("$.error", containsString("Wine was updated by another transaction. Please refresh and retry.")));
     }
 
+    @Test
+    void patch_updatesOnlyCountry_andPreservesWinery() throws Exception {
+        Long version = 1L;
+        Long wineId = addWineToWinery("Rioja", "Moldova", 2019, BigDecimal.valueOf(11), version);
+
+        mockMvc.perform(patch("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
+                                                        .contentType(MediaType.APPLICATION_JSON)
+                                                        .content("""
+                                                                  {"country":"Spain","version":%d}
+                                                                """.formatted(version)))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.country").value("Spain"))
+               .andExpect(jsonPath("$.winery.id").value(wineryId));
+    }
 
     @Test
     void deleteWine_whenPresent_returns204() throws Exception {

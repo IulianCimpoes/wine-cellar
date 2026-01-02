@@ -179,5 +179,4 @@ class WineServiceTest {
         verifyNoMoreInteractions(wineRepository, wineryRepository);
     }
 
-
 }
