@@ -259,7 +259,7 @@ class WineryControllerIT {
                        .contentType(MediaType.APPLICATION_JSON)
                        .content(objectMapper.writeValueAsString(stale)))
                .andExpect(status().isConflict())
-               .andExpect(jsonPath("$.error", containsString("was updated by another transaction. Please refresh and retry.")));
+               .andExpect(jsonPath("$.error", containsString("Winery was updated by another transaction. Please refresh and retry.")));
     }
 
 

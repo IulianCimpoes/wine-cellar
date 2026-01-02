@@ -94,7 +94,7 @@ public class WineService {
                                         .orElseThrow(() -> new NotFoundException("Winery not found: " + request.wineryId()));
 
         if (!Objects.equals(wine.getVersion(), request.version())) {
-            throw new ConflictException("Winery was updated by another transaction. Please refresh and retry.");
+            throw new ConflictException("Wine was updated by another transaction. Please refresh and retry.");
         }
 
         if (wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(request.name(), request.wineYear(), request.wineryId(), id)) {

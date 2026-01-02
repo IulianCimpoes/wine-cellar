@@ -342,7 +342,7 @@ class WineControllerIT {
                                                       .contentType(MediaType.APPLICATION_JSON)
                                                       .content(objectMapper.writeValueAsString(stale)))
                .andExpect(status().isConflict())
-               .andExpect(jsonPath("$.error", containsString("updated")));
+               .andExpect(jsonPath("$.error", containsString("Wine was updated by another transaction. Please refresh and retry.")));
     }
 
 
