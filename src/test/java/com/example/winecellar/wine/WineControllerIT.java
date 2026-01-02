@@ -2,6 +2,7 @@ package com.example.winecellar.wine;
 
 import com.example.winecellar.winery.Winery;
 import com.example.winecellar.winery.WineryRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.util.stream.IntStream;
@@ -44,6 +46,7 @@ class WineControllerIT {
         Winery winery = Winery.builder()
                               .name("Cricova")
                               .country("Moldova")
+                              .version(1L)
                               .build();
 
         wineryId = wineryRepository.save(winery)
@@ -256,7 +259,7 @@ class WineControllerIT {
 
     @Test
     void updateWine_whenMissing_returns404() throws Exception {
-        WineUpdateRequest request = new WineUpdateRequest("Wine", wineryId, "Moldova", 2022, BigDecimal.TEN,  1L);
+        WineUpdateRequest request = new WineUpdateRequest("Wine", wineryId, "Moldova", 2022, BigDecimal.TEN, 1L);
 
         mockMvc.perform(put("/api/wines/9999").with(httpBasic("admin", "adminpass"))
                                               .contentType(MediaType.APPLICATION_JSON)
@@ -294,6 +297,52 @@ class WineControllerIT {
                                                        .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isConflict())
                .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
+    }
+
+    @Test
+    void updateWine_returns409_whenVersionIsStale() throws Exception {
+        // Arrange: create winery + wine
+//        Long wineryId = addWinery("Cricova", "Moldova", 1L);
+
+        WineCreateRequest create = new WineCreateRequest("Cabernet", wineryId, "Moldova", 2019, new BigDecimal("120.00") );
+
+        MvcResult createResult = mockMvc.perform(post("/api/wines").with(httpBasic("admin", "adminpass"))
+                                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                                   .content(objectMapper.writeValueAsString(create)))
+                                        .andExpect(status().isOk()) // change to isCreated() if your API returns 201
+                                        .andReturn();
+
+        JsonNode created = objectMapper.readTree(createResult.getResponse()
+                                                             .getContentAsString());
+        long wineId = created.get("id")
+                             .asLong();
+
+        // Fetch wine to get version
+        MvcResult getResult = mockMvc.perform(get("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass")))
+                                     .andExpect(status().isOk())
+                                     .andReturn();
+
+        JsonNode wineBody = objectMapper.readTree(getResult.getResponse()
+                                                           .getContentAsString());
+        long v1 = wineBody.get("version")
+                          .asLong();
+
+        // Act 1: update with current version => OK
+        WineUpdateRequest ok = new WineUpdateRequest("Cabernet Updated", wineryId, "Moldova", 2019, new BigDecimal("130.00"), v1);
+
+        mockMvc.perform(put("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
+                                                      .contentType(MediaType.APPLICATION_JSON)
+                                                      .content(objectMapper.writeValueAsString(ok)))
+               .andExpect(status().isOk());
+
+        // Act 2: update with stale version => 409
+        WineUpdateRequest stale = new WineUpdateRequest("Cabernet Updated Again", wineryId, "Moldova", 2019, new BigDecimal("140.00"), v1);
+
+        mockMvc.perform(put("/api/wines/{id}", wineId).with(httpBasic("admin", "adminpass"))
+                                                      .contentType(MediaType.APPLICATION_JSON)
+                                                      .content(objectMapper.writeValueAsString(stale)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error", containsString("updated")));
     }
 
 

@@ -2,6 +2,7 @@ package com.example.winecellar.winery;
 
 import com.example.winecellar.wine.Wine;
 import com.example.winecellar.wine.WineRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.util.stream.IntStream;
@@ -225,6 +227,41 @@ class WineryControllerIT {
                .andExpect(status().isConflict())
                .andExpect(jsonPath("$.error").value(containsString("Winery already exists:")));
     }
+
+    @Test
+    void update_returns409_whenVersionIsStale() throws Exception {
+        // Arrange
+        Long wineryId = addWinery("Cricova", "Moldova", 1L);
+
+        // Get current version
+        MvcResult getResult = mockMvc.perform(get("/api/wineries/{id}", wineryId)
+                                             .with(httpBasic("admin", "adminpass")))
+                                     .andExpect(status().isOk())
+                                     .andReturn();
+
+        JsonNode body = objectMapper.readTree(getResult.getResponse().getContentAsString());
+        long v1 = body.get("version").asLong();
+
+        // Act 1: update with current version => success
+        WineryUpdateRequest ok = new WineryUpdateRequest("Cricova Updated", "Moldova", v1);
+
+        mockMvc.perform(put("/api/wineries/{id}", wineryId)
+                       .with(httpBasic("admin", "adminpass"))
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(ok)))
+               .andExpect(status().isOk());
+
+        // Act 2: update again using the OLD version => conflict
+        WineryUpdateRequest stale = new WineryUpdateRequest("Cricova Updated Again", "Moldova", v1);
+
+        mockMvc.perform(put("/api/wineries/{id}", wineryId)
+                       .with(httpBasic("admin", "adminpass"))
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content(objectMapper.writeValueAsString(stale)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error", containsString("was updated by another transaction. Please refresh and retry.")));
+    }
+
 
     //PUT /api/wineries/{id} — validation fails → 400
     @Test
