@@ -54,7 +54,9 @@ GET /api/wineries/paged – paginated & sorted wineries
 
 GET /api/wineries/{id} – get winery by id
 
-PUT /api/wineries/{id} – update winery
+PUT /api/wineries/{id} – full update winery (client sends complete representation + version)
+
+PATCH /api/wineries/{id} – partial update winery (client sends only changed fields + version)
 
 DELETE /api/wineries/{id} – delete winery
 
