@@ -69,6 +69,27 @@ public class WineryService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    public Winery patch(Long id, WineryPatchRequest request) {
+        Winery winery = findById(id);
+
+        if (!Objects.equals(winery.getVersion(), request.version())) {
+            throw new ConflictException("Winery was updated by another transaction. Please refresh and retry.");
+        }
+
+        String newName = request.name() != null ? request.name() : winery.getName();
+        String newCountry = request.country() != null ? request.country() : winery.getCountry();
+
+        if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCaseAndIdNot(newName, newCountry, id)) {
+            throw new ConflictException("Winery already exists: " + newName + " (" + newCountry + ")");
+        }
+
+        winery.setName(newName);
+        winery.setCountry(newCountry);
+        return wineryRepository.save(winery);
+    }
+
+
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         Winery winery = findById(id);
 

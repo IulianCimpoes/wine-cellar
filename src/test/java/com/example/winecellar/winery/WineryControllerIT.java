@@ -297,6 +297,63 @@ class WineryControllerIT {
                .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
     }
 
+    @Test
+    void patch_updatesOnlyName_andPreservesCountry() throws Exception {
+        Long v1 = 1L;
+        Long wineryId = addWinery("Cricova", "Moldova", 1L);
+
+        mockMvc.perform(patch("/api/wineries/{id}", wineryId)
+                       .with(httpBasic("admin", "adminpass"))
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content("""
+              {"name":"Cricova Updated","version":%d}
+            """.formatted(v1)))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.name").value("Cricova Updated"))
+               .andExpect(jsonPath("$.country").value("Moldova"));
+    }
+
+    @Test
+    void patch_returns409_whenDuplicate() throws Exception {
+        Long version = 1L;
+        addWinery("Cricova", "Moldova", version);
+        Long winery2Id = addWinery("Milesti", "Moldova", version);
+
+        mockMvc.perform(patch("/api/wineries/{id}", winery2Id)
+                       .with(httpBasic("admin", "adminpass"))
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content("""
+              {"name":"Cricova","country":"Moldova","version":%d}
+            """.formatted(version)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error", containsString("Winery already exists:")));
+    }
+
+    @Test
+    void patch_returns409_whenVersionStale() throws Exception {
+        Long version = 1L;
+        Long wineryId = addWinery("Cricova", "Moldova",  version);
+
+        // first patch with v1 => OK
+        mockMvc.perform(patch("/api/wineries/{id}", wineryId)
+                       .with(httpBasic("admin", "adminpass"))
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content("""
+              {"name":"Cricova Updated","version":%d}
+            """.formatted(version)))
+               .andExpect(status().isOk());
+
+        // second patch with old v1 => 409
+        mockMvc.perform(patch("/api/wineries/{id}", wineryId)
+                       .with(httpBasic("admin", "adminpass"))
+                       .contentType(MediaType.APPLICATION_JSON)
+                       .content("""
+              {"country":"MD","version":%d}
+            """.formatted(version)))
+               .andExpect(status().isConflict())
+               .andExpect(jsonPath("$.error", containsString("updated")));
+    }
+
     //DELETE /api/wineries/{id}
     @Test
     void delete_whenNoWines_returns204() throws Exception {

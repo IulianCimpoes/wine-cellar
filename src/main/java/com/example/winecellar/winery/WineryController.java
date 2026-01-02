@@ -34,22 +34,28 @@ public class WineryController {
         return wineryMapper.toResponse(wineryService.create(wineryMapper.toEntity(request)));
     }
 
+    @PutMapping("/{id}")
+    public WineryResponse update(@PathVariable Long id,
+                                 @Valid @RequestBody WineryUpdateRequest request) {
+        return wineryMapper.toResponse(wineryService.update(id, request));
+    }
+
+    @PatchMapping("/{id}")
+    public WineryResponse patch(@PathVariable Long id,
+                                @Valid @RequestBody WineryPatchRequest request) {
+        return wineryMapper.toResponse(wineryService.patch(id, request));
+    }
+
     @GetMapping
     public List<WineryResponse> getAll() {
         return wineryService.findAll().stream()
-                .map(wineryMapper::toResponse)
-                .toList();
+                            .map(wineryMapper::toResponse)
+                            .toList();
     }
 
     @GetMapping("/{id}")
     public WineryResponse getById(@PathVariable Long id) {
         return wineryMapper.toResponse(wineryService.findById(id));
-    }
-
-    @PutMapping("/{id}")
-    public WineryResponse update(@PathVariable Long id,
-                                 @Valid @RequestBody WineryUpdateRequest request) {
-        return wineryMapper.toResponse(wineryService.update(id, request));
     }
 
     @GetMapping("/{id}/wines")
