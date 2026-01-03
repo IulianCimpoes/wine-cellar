@@ -1,0 +1,7 @@
+target/
+.git/
+.idea/
+abc/
+*.iml
+*.log
+start_logs
