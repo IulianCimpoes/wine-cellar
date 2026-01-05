@@ -131,6 +131,26 @@ class WineryControllerIT {
                .andExpect(jsonPath("$.totalElements", equalTo(6)));
     }
 
+    @Test
+    void v2_returns_enveloped_page_response() throws Exception {
+        addWinery("Cricova", "Moldova", 1L);
+        addWinery("Milesti", "Moldova", 1L);
+
+        mockMvc.perform(get("/api/v2/wineries")
+                       .with(httpBasic("user", "userpass"))
+                       .param("page", "0")
+                       .param("size", "5")
+                       .param("sortBy", "name")
+                       .param("direction", "asc"))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.data").isArray())
+               .andExpect(jsonPath("$.page.number").value(0))
+               .andExpect(jsonPath("$.page.size").value(5))
+               .andExpect(jsonPath("$.page.totalElements").isNumber())
+               .andExpect(jsonPath("$.page.totalPages").isNumber());
+    }
+
+
     //GET /api/wineries/paged?page=1&size=5
     @Test
     void getPaged_withCustomPageAndSize_returnsCorrectSlice() throws Exception {

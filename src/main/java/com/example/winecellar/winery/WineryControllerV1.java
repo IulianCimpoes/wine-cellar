@@ -14,15 +14,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/wineries")
-public class WineryController {
+@RequestMapping({"/api/wineries", "/api/v1/wineries"})
+public class WineryControllerV1 {
 
     private final WineryService wineryService;
     private final WineryMapper wineryMapper;
     private final WineService wineService;
     private final WineMapper wineMapper;
 
-    public WineryController(WineryService wineryService, WineryMapper wineryMapper, WineService wineService, WineMapper wineMapper) {
+    public WineryControllerV1(WineryService wineryService, WineryMapper wineryMapper, WineService wineService, WineMapper wineMapper) {
         this.wineryService = wineryService;
         this.wineryMapper = wineryMapper;
         this.wineService = wineService;
