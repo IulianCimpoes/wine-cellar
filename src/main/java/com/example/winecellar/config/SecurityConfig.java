@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .httpBasic(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         // allow swagger endpoints without auth (optional but nice)
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/actuator/health/**")
                         .permitAll()
                         // everything else requires authentication; authorization is enforced via @PreAuthorize
                         .anyRequest()

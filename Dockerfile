@@ -20,4 +20,8 @@ RUN useradd -r -u 1001 appuser
 USER 1001
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
+CMD curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
+
 ENTRYPOINT ["java","-jar","/app/app.jar"]
