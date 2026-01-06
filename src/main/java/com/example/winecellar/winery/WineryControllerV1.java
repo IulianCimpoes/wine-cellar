@@ -3,6 +3,7 @@ package com.example.winecellar.winery;
 import com.example.winecellar.wine.WineMapper;
 import com.example.winecellar.wine.WineResponse;
 import com.example.winecellar.wine.WineService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +47,12 @@ public class WineryControllerV1 {
         return wineryMapper.toResponse(wineryService.patch(id, request));
     }
 
+    @Deprecated
+    @Operation(
+            summary = "Get all wineries (v1)",
+            deprecated = true,
+            description = "Deprecated: use v2 endpoint. v1 will be removed in a future release."
+    )
     @GetMapping
     public List<WineryResponse> getAll() {
         return wineryService.findAll().stream()
