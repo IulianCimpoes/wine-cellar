@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -30,7 +31,8 @@ class WinerySecurityIT {
     @Test
     void unauthenticated_requests_return_401() throws Exception {
         mockMvc.perform(get("/api/wineries"))
-               .andExpect(status().isUnauthorized());
+               .andExpect(status().isUnauthorized())
+               .andExpect(header().exists("X-Request-Id"));
     }
 
     @Test

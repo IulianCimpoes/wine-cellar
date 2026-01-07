@@ -2,6 +2,7 @@ package com.example.winecellar.common;
 
 import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -22,6 +23,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Internal server error");
+        body.put("requestId", MDC.get("requestId"));
         body.put("timestamp", LocalDateTime.now()
                                            .toString());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -33,6 +35,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Validation failed");
+        body.put("requestId", MDC.get("requestId"));
         body.put("timestamp", LocalDateTime.now()
                                            .toString());
 
@@ -50,6 +53,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleNotFound(NotFoundException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", ex.getMessage());
+        body.put("requestId", MDC.get("requestId"));
         body.put("timestamp", LocalDateTime.now()
                                            .toString());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -60,6 +64,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleConflict(ConflictException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", ex.getMessage());
+        body.put("requestId", MDC.get("requestId"));
         body.put("timestamp", LocalDateTime.now()
                                            .toString());
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -70,6 +75,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Forbidden");
+        body.put("requestId", MDC.get("requestId"));
         body.put("timestamp", LocalDateTime.now().toString());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
@@ -78,6 +84,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Unauthorized");
+        body.put("requestId", MDC.get("requestId"));
         body.put("timestamp", LocalDateTime.now().toString());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
@@ -86,6 +93,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Resource was updated by another transaction. Please refresh and retry.");
+        body.put("requestId", MDC.get("requestId"));
         body.put("timestamp", LocalDateTime.now().toString());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }

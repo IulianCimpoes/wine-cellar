@@ -19,8 +19,7 @@ import java.util.stream.IntStream;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -72,6 +71,7 @@ class WineryControllerIT {
                                              .contentType(MediaType.APPLICATION_JSON)
                                              .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isConflict())
+               .andExpect(header().exists("X-Request-Id"))
                .andExpect(jsonPath("$.error").value(containsString("Winery already exists:")));
 
     }
@@ -136,12 +136,11 @@ class WineryControllerIT {
         addWinery("Cricova", "Moldova", 1L);
         addWinery("Milesti", "Moldova", 1L);
 
-        mockMvc.perform(get("/api/v2/wineries")
-                       .with(httpBasic("user", "userpass"))
-                       .param("page", "0")
-                       .param("size", "5")
-                       .param("sortBy", "name")
-                       .param("direction", "asc"))
+        mockMvc.perform(get("/api/v2/wineries").with(httpBasic("user", "userpass"))
+                                               .param("page", "0")
+                                               .param("size", "5")
+                                               .param("sortBy", "name")
+                                               .param("direction", "asc"))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.data").isArray())
                .andExpect(jsonPath("$.page.number").value(0))
@@ -212,7 +211,8 @@ class WineryControllerIT {
     void getById_whenMissing_returns404() throws Exception {
         mockMvc.perform(get("/api/wineries/9999").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.error").value(containsString("Winery not found:")));
+               .andExpect(jsonPath("$.error").value(containsString("Winery not found:")))
+               .andExpect(header().exists("X-Request-Id"));
     }
 
     //PUT /api/wineries/{id} — success
@@ -254,31 +254,31 @@ class WineryControllerIT {
         Long wineryId = addWinery("Cricova", "Moldova", 1L);
 
         // Get current version
-        MvcResult getResult = mockMvc.perform(get("/api/wineries/{id}", wineryId)
-                                             .with(httpBasic("admin", "adminpass")))
+        MvcResult getResult = mockMvc.perform(get("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass")))
                                      .andExpect(status().isOk())
                                      .andReturn();
 
-        JsonNode body = objectMapper.readTree(getResult.getResponse().getContentAsString());
-        long v1 = body.get("version").asLong();
+        JsonNode body = objectMapper.readTree(getResult.getResponse()
+                                                       .getContentAsString());
+        long v1 = body.get("version")
+                      .asLong();
 
         // Act 1: update with current version => success
         WineryUpdateRequest ok = new WineryUpdateRequest("Cricova Updated", "Moldova", v1);
 
-        mockMvc.perform(put("/api/wineries/{id}", wineryId)
-                       .with(httpBasic("admin", "adminpass"))
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(ok)))
+        mockMvc.perform(put("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass"))
+                                                           .contentType(MediaType.APPLICATION_JSON)
+                                                           .content(objectMapper.writeValueAsString(ok)))
                .andExpect(status().isOk());
 
         // Act 2: update again using the OLD version => conflict
         WineryUpdateRequest stale = new WineryUpdateRequest("Cricova Updated Again", "Moldova", v1);
 
-        mockMvc.perform(put("/api/wineries/{id}", wineryId)
-                       .with(httpBasic("admin", "adminpass"))
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(stale)))
+        mockMvc.perform(put("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass"))
+                                                           .contentType(MediaType.APPLICATION_JSON)
+                                                           .content(objectMapper.writeValueAsString(stale)))
                .andExpect(status().isConflict())
+               .andExpect(header().exists("X-Request-Id"))
                .andExpect(jsonPath("$.error", containsString("Winery was updated by another transaction. Please refresh and retry.")));
     }
 
@@ -302,6 +302,7 @@ class WineryControllerIT {
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.error").value("Validation failed"))
                .andExpect(jsonPath("$.fields.name", not(emptyOrNullString())))
+               .andExpect(header().exists("X-Request-Id"))
                .andExpect(jsonPath("$.fields.country", not(emptyOrNullString())));
     }
 
@@ -322,12 +323,11 @@ class WineryControllerIT {
         Long v1 = 1L;
         Long wineryId = addWinery("Cricova", "Moldova", 1L);
 
-        mockMvc.perform(patch("/api/wineries/{id}", wineryId)
-                       .with(httpBasic("admin", "adminpass"))
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content("""
-              {"name":"Cricova Updated","version":%d}
-            """.formatted(v1)))
+        mockMvc.perform(patch("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass"))
+                                                             .contentType(MediaType.APPLICATION_JSON)
+                                                             .content("""
+                                                                       {"name":"Cricova Updated","version":%d}
+                                                                     """.formatted(v1)))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.name").value("Cricova Updated"))
                .andExpect(jsonPath("$.country").value("Moldova"));
@@ -339,12 +339,11 @@ class WineryControllerIT {
         addWinery("Cricova", "Moldova", version);
         Long winery2Id = addWinery("Milesti", "Moldova", version);
 
-        mockMvc.perform(patch("/api/wineries/{id}", winery2Id)
-                       .with(httpBasic("admin", "adminpass"))
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content("""
-              {"name":"Cricova","country":"Moldova","version":%d}
-            """.formatted(version)))
+        mockMvc.perform(patch("/api/wineries/{id}", winery2Id).with(httpBasic("admin", "adminpass"))
+                                                              .contentType(MediaType.APPLICATION_JSON)
+                                                              .content("""
+                                                                        {"name":"Cricova","country":"Moldova","version":%d}
+                                                                      """.formatted(version)))
                .andExpect(status().isConflict())
                .andExpect(jsonPath("$.error", containsString("Winery already exists:")));
     }
@@ -352,24 +351,22 @@ class WineryControllerIT {
     @Test
     void patch_returns409_whenVersionStale() throws Exception {
         Long version = 1L;
-        Long wineryId = addWinery("Cricova", "Moldova",  version);
+        Long wineryId = addWinery("Cricova", "Moldova", version);
 
         // first patch with v1 => OK
-        mockMvc.perform(patch("/api/wineries/{id}", wineryId)
-                       .with(httpBasic("admin", "adminpass"))
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content("""
-              {"name":"Cricova Updated","version":%d}
-            """.formatted(version)))
+        mockMvc.perform(patch("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass"))
+                                                             .contentType(MediaType.APPLICATION_JSON)
+                                                             .content("""
+                                                                       {"name":"Cricova Updated","version":%d}
+                                                                     """.formatted(version)))
                .andExpect(status().isOk());
 
         // second patch with old v1 => 409
-        mockMvc.perform(patch("/api/wineries/{id}", wineryId)
-                       .with(httpBasic("admin", "adminpass"))
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content("""
-              {"country":"MD","version":%d}
-            """.formatted(version)))
+        mockMvc.perform(patch("/api/wineries/{id}", wineryId).with(httpBasic("admin", "adminpass"))
+                                                             .contentType(MediaType.APPLICATION_JSON)
+                                                             .content("""
+                                                                       {"country":"MD","version":%d}
+                                                                     """.formatted(version)))
                .andExpect(status().isConflict())
                .andExpect(jsonPath("$.error", containsString("updated")));
     }
@@ -538,4 +535,21 @@ class WineryControllerIT {
                                        .build())
                              .getId();
     }
+
+    @Test
+    void requestId_isGenerated_whenMissing() throws Exception {
+        mockMvc.perform(get("/api/wineries").with(httpBasic("user", "userpass")))
+               .andExpect(status().isOk())
+               .andExpect(header().exists("X-Request-Id"));
+    }
+
+    @Test
+    void requestId_isEchoed_whenProvided() throws Exception {
+        mockMvc.perform(get("/api/wineries").with(httpBasic("user", "userpass"))
+                                            .header("X-Request-Id", "test-correlation-id"))
+               .andExpect(status().isOk())
+               .andExpect(header().string("X-Request-Id", "test-correlation-id"));
+    }
+
+
 }

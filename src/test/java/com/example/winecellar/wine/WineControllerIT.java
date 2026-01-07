@@ -19,8 +19,7 @@ import java.util.stream.IntStream;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -89,7 +88,8 @@ class WineControllerIT {
                .andExpect(jsonPath("$.error").value("Validation failed"))
                .andExpect(jsonPath("$.fields.name", not(emptyOrNullString())))
                .andExpect(jsonPath("$.fields.country", not(emptyOrNullString())))
-               .andExpect(jsonPath("$.fields.wineYear", containsString("Year")));
+               .andExpect(jsonPath("$.fields.wineYear", containsString("Year")))
+               .andExpect(header().exists("X-Request-Id"));
     }
 
     @Test
@@ -105,6 +105,7 @@ class WineControllerIT {
                                           .contentType(MediaType.APPLICATION_JSON)
                                           .content(objectMapper.writeValueAsString(request)))
                .andExpect(status().isConflict())
+               .andExpect(header().exists("X-Request-Id"))
                .andExpect(jsonPath("$.error").value(containsString("Wine already exists:")));
     }
 
@@ -167,6 +168,7 @@ class WineControllerIT {
 
         mockMvc.perform(get("/api/wines/9999").with(httpBasic("admin", "adminpass")))
                .andExpect(status().isNotFound())
+               .andExpect(header().exists("X-Request-Id"))
                .andExpect(jsonPath("$.error").value(containsString("Wine not found:")));
     }
 

@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -68,7 +69,8 @@ class WineSecurityIT {
         Long wineId = addWineToWinery( "Cabernet", "Moldova", 2019,  BigDecimal.valueOf(150));
 
         mockMvc.perform(delete("/api/wines/{id}", wineId).with(httpBasic("user", "userpass")))
-               .andExpect(status().isForbidden());
+               .andExpect(status().isForbidden())
+               .andExpect(header().exists("X-Request-Id"));
     }
 
 
