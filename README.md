@@ -58,6 +58,19 @@ including:
     -   `404 Not Found` -- resource not found
     -   `409 Conflict` -- duplicates or stale updates
 
+### Request Correlation ID
+
+Each incoming HTTP request is assigned a correlation identifier (`X-Request-Id`).
+
+- If the client provides `X-Request-Id`, it is propagated
+- Otherwise, the server generates one
+- The value is:
+    - Returned in the response header
+    - Included in application logs
+    - Included in error responses
+
+This enables end-to-end request tracing and simplifies debugging in distributed systems.
+
 ### Data Integrity & Concurrency
 
 -   Database-level unique constraints
