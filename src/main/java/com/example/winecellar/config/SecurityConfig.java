@@ -1,5 +1,7 @@
 package com.example.winecellar.config;
 
+import com.example.winecellar.common.logging.RequestIdFilter;
+import com.example.winecellar.common.logging.RequestLoggingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -13,15 +15,21 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity // enables @PreAuthorize
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            RequestIdFilter requestIdFilter,
+                                            RequestLoggingFilter requestLoggingFilter) throws Exception {
         http
-                // for REST APIs; keep it simple for interview scope
+                // Make sure RequestId is set even when authentication fails (401)
+                .addFilterBefore(requestIdFilter, BasicAuthenticationFilter.class)
+                // Optional: access log after requestId is in MDC/header
+                .addFilterAfter(requestLoggingFilter, RequestIdFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(Customizer.withDefaults())
