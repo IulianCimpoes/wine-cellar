@@ -31,11 +31,17 @@ public class SecurityConfig {
                 // Optional: access log after requestId is in MDC/header
                 .addFilterAfter(requestLoggingFilter, RequestIdFilter.class)
                 .csrf(csrf -> csrf.disable())
+                // H2 console needs frames
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         // allow swagger endpoints without auth (optional but nice)
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/actuator/health/**")
+                        .requestMatchers("/v3/api-docs/**"
+                                , "/swagger-ui/**"
+                                , "/swagger-ui.html"
+                                , "/h2-console/**"
+                                , "/actuator/health/**")
                         .permitAll()
                         // everything else requires authentication; authorization is enforced via @PreAuthorize
                         .anyRequest()

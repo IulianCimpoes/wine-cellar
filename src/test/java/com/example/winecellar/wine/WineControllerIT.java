@@ -376,7 +376,7 @@ class WineControllerIT {
 
     private void addWinesToWinery(int winesCount, String name, String country, int wineYear, BigDecimal price, Long version) {
         IntStream.range(0, winesCount)
-                 .forEach(i -> addWineToWinery(name, country, wineYear, price, version));
+                 .forEach(i -> addWineToWinery(name + i, country, wineYear + i, price, version));
     }
 
 

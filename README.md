@@ -71,12 +71,19 @@ Each incoming HTTP request is assigned a correlation identifier (`X-Request-Id`)
 
 This enables end-to-end request tracing and simplifies debugging in distributed systems.
 
-### Data Integrity & Concurrency
+### Data Integrity, Concurrency & Schema Management
 
--   Database-level unique constraints
--   Service-level duplicate checks
--   **Optimistic locking** using `@Version`
--   Stale updates return `409 Conflict`
+- Database-level unique constraints
+- Service-level duplicate checks
+- **Optimistic locking** using `@Version`
+- Stale updates return `409 Conflict`
+
+Database schema evolution is managed with **Flyway**:
+- Initial schema is defined via versioned migrations
+- Hibernate is configured with `ddl-auto=validate` and does not modify the schema
+- Migrations are applied automatically on application startup
+
+This ensures deterministic schema evolution and early failure in case of schema mismatch.
 
 ------------------------------------------------------------------------
 
