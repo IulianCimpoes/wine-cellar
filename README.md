@@ -85,6 +85,16 @@ Database schema evolution is managed with **Flyway**:
 
 This ensures deterministic schema evolution and early failure in case of schema mismatch.
 
+### Dev seed data
+
+For local development and API exploration (e.g. via Swagger), the application provides **demo seed data** (a small set of wineries and wines).
+
+- Seed data is applied via a **Flyway repeatable migration**
+- Seed data runs **only when the application is started with the `dev` profile**
+- Seed data is **disabled by default** and **never runs in production**
+
+This allows the API to be usable immediately in development without affecting test isolation or production safety.
+
 ------------------------------------------------------------------------
 
 ## API Versioning Strategy
