@@ -3,6 +3,8 @@ package com.example.winecellar.winery;
 import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
 import com.example.winecellar.wine.WineRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,6 +35,7 @@ public class WineryService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @Cacheable(cacheNames = "wineriesList")
     public List<Winery> findAll() {
         return wineryRepository.findAll();
     }
@@ -44,6 +47,7 @@ public class WineryService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = "wineriesList", allEntries = true)
     public Winery create(Winery winery) {
         if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCase(winery.getName(), winery.getCountry())) {
             throw new ConflictException("Winery already exists: " + winery.getName() + " (" + winery.getCountry() + ")");
@@ -52,6 +56,7 @@ public class WineryService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = "wineriesList", allEntries = true)
     public Winery update(Long id, WineryUpdateRequest request) {
         Winery winery = findById(id);
 
@@ -69,6 +74,7 @@ public class WineryService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = "wineriesList", allEntries = true)
     public Winery patch(Long id, WineryPatchRequest request) {
         Winery winery = findById(id);
 
@@ -90,6 +96,7 @@ public class WineryService {
 
 
     @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = "wineriesList", allEntries = true)
     public void delete(Long id) {
         Winery winery = findById(id);
 

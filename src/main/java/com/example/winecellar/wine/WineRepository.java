@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface WineRepository extends JpaRepository<Wine, Long> {
-    // Derived query method: Spring builds the query from the method name
     List<Wine> findByCountryIgnoreCase(String country);
 
     @Query("""
