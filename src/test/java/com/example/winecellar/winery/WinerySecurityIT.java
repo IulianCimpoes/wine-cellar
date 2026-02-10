@@ -1,5 +1,6 @@
 package com.example.winecellar.winery;
 
+import com.example.winecellar.wine.WineRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +26,12 @@ class WinerySecurityIT {
     @Autowired
     WineryRepository wineryRepository;
 
+    @Autowired
+    WineRepository wineRepository;
+
     @BeforeEach
     void setup() {
+        wineRepository.deleteAll();
         wineryRepository.deleteAll();
     }
 
