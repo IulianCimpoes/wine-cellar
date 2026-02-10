@@ -1,11 +1,13 @@
 package com.example.winecellar.common.events;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @Profile({"dev", "prod"})
+@ConditionalOnMissingBean(DomainEventPublisher.class)
 public class KafkaEventPublisher implements DomainEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;

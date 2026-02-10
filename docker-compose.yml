@@ -22,29 +22,10 @@ services:
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=false
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
       - ALLOW_PLAINTEXT_LISTENER=yes
     ports:
       - "9092:9092"
-
-  kafka-init:
-    image: bitnamilegacy/kafka:latest
-    depends_on:
-      - kafka
-    entrypoint: [ "/bin/bash", "-lc" ]
-    command: >
-      "
-      echo 'Waiting for Kafka...';
-      for i in {1..30}; do
-        /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1 && break;
-        sleep 2;
-      done;
-
-      /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list | grep -q '^winecellar.events$'
-      || /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --topic winecellar.events --partitions 1 --replication-factor 1;
-
-      echo 'Kafka topic provisioning done.';
-      "
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
