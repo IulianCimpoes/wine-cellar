@@ -40,6 +40,9 @@ public class OutboxEvent {
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
+    @Column(name = "sent_at")
+    private Instant sentAt;
+
     public static OutboxEvent newEvent(
             String eventType,
             String aggregateType,
@@ -58,5 +61,10 @@ public class OutboxEvent {
         e.occurredAt = occurredAt;
         e.status = "NEW";
         return e;
+    }
+
+    public void markSent(Instant now) {
+        this.status = "SENT";
+        this.sentAt = now;
     }
 }
