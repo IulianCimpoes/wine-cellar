@@ -43,6 +43,16 @@ public class OutboxEvent {
     @Column(name = "sent_at")
     private Instant sentAt;
 
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount;
+
+    @Lob
+    @Column(name = "last_error")
+    private String lastError;
+
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
+
     public static OutboxEvent newEvent(
             String eventType,
             String aggregateType,
@@ -60,11 +70,27 @@ public class OutboxEvent {
         e.requestId = requestId;
         e.occurredAt = occurredAt;
         e.status = "NEW";
+        e.retryCount = 0;
+        e.lastError = null;
+        e.nextAttemptAt = null;
         return e;
     }
 
     public void markSent(Instant now) {
         this.status = "SENT";
         this.sentAt = now;
+        this.nextAttemptAt = null;
+        this.lastError = null;
+    }
+
+    public void markFailed(String error, Instant nextAttemptAt) {
+        this.status = "FAILED";
+        this.retryCount += 1;
+        this.lastError = error;
+        this.nextAttemptAt = nextAttemptAt;
+    }
+
+    public boolean isRetryExhausted(int maxRetries) {
+        return this.retryCount >= maxRetries;
     }
 }

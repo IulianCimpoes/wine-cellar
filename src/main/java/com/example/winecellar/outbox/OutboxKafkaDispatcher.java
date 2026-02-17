@@ -5,6 +5,7 @@ import com.example.winecellar.common.events.EventProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,42 +30,80 @@ public class OutboxKafkaDispatcher {
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
+    @Value("${app.outbox.max-retries:10}")
+    private int maxRetries;
+
+    @Value("${app.outbox.max-backoff-seconds:60}")
+    private long maxBackoffSeconds;
+
     public OutboxKafkaDispatcher(OutboxEventRepository repo,
                                 KafkaTemplate<String, Object> kafkaTemplate,
                                 EventProperties props,
                                 ObjectMapper objectMapper,
-                                Clock clock) {
+                                Clock clock,
+                                 int maxRetries,
+                                 long maxBackoffSeconds) {
         this.repo = repo;
         this.kafkaTemplate = kafkaTemplate;
         this.props = props;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.maxRetries = maxRetries;
+        this.maxBackoffSeconds = maxBackoffSeconds;
     }
 
     @Scheduled(fixedDelayString = "${app.outbox.poll-delay-ms:1000}")
     @Transactional
     public void dispatchBatch() {
-        List<OutboxEvent> batch = repo.findTop50ByStatusOrderByOccurredAtAsc("NEW");
+        Instant now = Instant.now(clock);
+
+        List<OutboxEvent> batch = repo.findEligible(now);
         if (batch.isEmpty()) return;
 
         for (OutboxEvent e : batch) {
-            DomainEvent<JsonNode> event = fromJson(e.getPayload());
+            if (e.isRetryExhausted(maxRetries)) {
+                // simplest: stop retrying by moving it out of eligible states
+                // (you can add DEAD later; for now mark FAILED and push nextAttempt far future)
+                e.markFailed("Retry exhausted (maxRetries=" + maxRetries + ")", now.plusSeconds(365L * 24 * 3600));
+                continue;
+            }
+
+            DomainEvent<JsonNode> event;
+            try {
+                event = fromJson(e.getPayload());
+            } catch (Exception ex) {
+                // payload is corrupted -> no point retrying endlessly
+                e.markFailed("Deserialization failed: " + safeMsg(ex), now.plusSeconds(365L * 24 * 3600));
+                continue;
+            }
 
             try {
-                // Block for determinism (simple + testable). We can make it async later.
-                kafkaTemplate
-                        .send(props.topic(), e.getAggregateId(), event)
-                        .get(5, TimeUnit.SECONDS);
+                kafkaTemplate.send(props.topic(), e.getAggregateId(), event)
+                             .get(5, TimeUnit.SECONDS);
 
-                e.markSent(Instant.now(clock));
+                e.markSent(now);
             } catch (Exception ex) {
-                // For now: leave as NEW so it retries next poll.
-                // Later we’ll add FAILED + retry_count + last_error + backoff.
+                Instant nextAttempt = now.plusSeconds(computeBackoffSeconds(e.getRetryCount(), maxBackoffSeconds));
+                e.markFailed(safeMsg(ex), nextAttempt);
             }
         }
-        // No explicit save needed if OutboxEvent is managed (loaded via JPA in txn).
-        // But it’s OK to call repo.saveAll(batch) if you prefer clarity.
     }
+
+    private long computeBackoffSeconds(int currentRetryCount, long maxBackoffSeconds) {
+        // currentRetryCount is "before increment" in our flow.
+        // For the first failure, retryCount=0 -> backoff=1s.
+        long exp = 1L << Math.min(currentRetryCount, 30); // avoid overflow
+        long delay = Math.min(maxBackoffSeconds, exp);
+        return Math.max(1, delay);
+    }
+
+    private String safeMsg(Exception ex) {
+        String msg = ex.getMessage();
+        if (msg == null || msg.isBlank()) return ex.getClass().getSimpleName();
+        // keep it bounded
+        return msg.length() > 500 ? msg.substring(0, 500) : msg;
+    }
+
 
     private DomainEvent<JsonNode> fromJson(String json) {
         try {
