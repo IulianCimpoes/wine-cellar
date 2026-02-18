@@ -41,8 +41,8 @@ public class OutboxKafkaDispatcher {
                                 EventProperties props,
                                 ObjectMapper objectMapper,
                                 Clock clock,
-                                 int maxRetries,
-                                 long maxBackoffSeconds) {
+                                 @Value("${app.outbox.max-retries:10}") int maxRetries,
+                                 @Value("${app.outbox.max-backoff-seconds:60}") long maxBackoffSeconds) {
         this.repo = repo;
         this.kafkaTemplate = kafkaTemplate;
         this.props = props;
@@ -62,8 +62,8 @@ public class OutboxKafkaDispatcher {
 
         for (OutboxEvent e : batch) {
             if (e.isRetryExhausted(maxRetries)) {
-                // simplest: stop retrying by moving it out of eligible states
-                // (you can add DEAD later; for now mark FAILED and push nextAttempt far future)
+                // stop retrying by moving it out of eligible states
+                // mark FAILED and push nextAttempt far future)
                 e.markFailed("Retry exhausted (maxRetries=" + maxRetries + ")", now.plusSeconds(365L * 24 * 3600));
                 continue;
             }

@@ -125,13 +125,11 @@ public class WineService {
         String newName = request.name() != null ? request.name() : wine.getName();
         int newYear = request.wineYear() != null ? request.wineYear() : wine.getWineYear();
 
-        // Duplicate definition: (name, wineYear, winery)
         if (wineRepository.existsByNameIgnoreCaseAndWineYearAndWineryRef_IdAndIdNot(
                 newName, newYear, winery.getId(), id)) {
             throw new ConflictException("Wine already exists: " + newName + " (" + newYear + ") for winery " + winery.getId());
         }
 
-        // Apply partial updates
         wine.setName(newName);
         wine.setWineYear(newYear);
 
@@ -147,7 +145,6 @@ public class WineService {
 
         return wineRepository.save(wine);
     }
-
 
 
     @PreAuthorize("hasRole('ADMIN')")

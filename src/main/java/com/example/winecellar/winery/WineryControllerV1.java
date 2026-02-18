@@ -88,7 +88,7 @@ public class WineryControllerV1 {
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "name") String sort
     ) {
-        wineryService.findById(id); // ensure 404 if winery missing
+        wineryService.findById(id);
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
         return wineService.findByWineryIdPaged(id, pageable).map(wineMapper::toResponse);
     }
