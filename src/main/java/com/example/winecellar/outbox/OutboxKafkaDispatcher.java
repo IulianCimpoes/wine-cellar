@@ -41,8 +41,8 @@ public class OutboxKafkaDispatcher {
                                 EventProperties props,
                                 ObjectMapper objectMapper,
                                 Clock clock,
-                                 int maxRetries,
-                                 long maxBackoffSeconds) {
+                                 @Value("${app.outbox.max-retries:10}") int maxRetries,
+                                 @Value("${app.outbox.max-backoff-seconds:60}") long maxBackoffSeconds) {
         this.repo = repo;
         this.kafkaTemplate = kafkaTemplate;
         this.props = props;
