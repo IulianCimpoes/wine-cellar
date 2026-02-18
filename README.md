@@ -97,6 +97,21 @@ This allows the API to be usable immediately in development without affecting te
 
 ------------------------------------------------------------------------
 
+## Asynchronous Eventing (Kafka + Transactional Outbox)
+
+WineCellar publishes domain events (e.g., `WineryCreated`) to Kafka using a **Transactional Outbox** design:
+
+- Request path writes the domain change and an `outbox_event` row in the same DB transaction
+- A scheduled dispatcher (`OutboxKafkaDispatcher`) publishes eligible outbox rows to Kafka
+- Failures are retried with exponential backoff (maxRetries=10, maxBackoffSeconds=60)
+
+For detailed architecture, failure modes, retry policy, and diagrams, see:
+
+- [Eventing Architecture (Kafka + Transactional Outbox)](docs/eventing-kafka-outbox.md)
+
+------------------------------------------------------------------------
+
+
 ## API Versioning Strategy
 
 ### Strategy Used

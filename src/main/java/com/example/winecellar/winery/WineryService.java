@@ -1,8 +1,14 @@
 package com.example.winecellar.winery;
 
+import com.example.winecellar.common.events.DomainEvent;
+import com.example.winecellar.common.events.DomainEventPublisher;
+import com.example.winecellar.common.events.KafkaEventPublisher;
+import com.example.winecellar.common.events.WineryCreatedPayload;
 import com.example.winecellar.common.exception.ConflictException;
 import com.example.winecellar.common.exception.NotFoundException;
+import com.example.winecellar.common.logging.RequestIdFilter;
 import com.example.winecellar.wine.WineRepository;
+import org.slf4j.MDC;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -11,8 +17,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -20,10 +28,12 @@ public class WineryService {
 
     private final WineryRepository wineryRepository;
     private final WineRepository wineRepository;
+    private final DomainEventPublisher publisher;
 
-    public WineryService(WineryRepository wineryRepository, WineRepository wineRepository) {
+    public WineryService(WineryRepository wineryRepository, WineRepository wineRepository, DomainEventPublisher publisher) {
         this.wineryRepository = wineryRepository;
         this.wineRepository = wineRepository;
+        this.publisher = publisher;
     }
 
     @Transactional(readOnly = true)
@@ -35,7 +45,7 @@ public class WineryService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    @Cacheable(cacheNames = "wineriesList")
+//    @Cacheable(cacheNames = "wineriesList")
     public List<Winery> findAll() {
         return wineryRepository.findAll();
     }
@@ -52,7 +62,21 @@ public class WineryService {
         if (wineryRepository.existsByNameIgnoreCaseAndCountryIgnoreCase(winery.getName(), winery.getCountry())) {
             throw new ConflictException("Winery already exists: " + winery.getName() + " (" + winery.getCountry() + ")");
         }
-        return wineryRepository.save(winery);
+        Winery saved = wineryRepository.save(winery);
+
+        String requestId = MDC.get(RequestIdFilter.MDC_KEY); // "requestId" :contentReference[oaicite:10]{index=10}
+        DomainEvent<WineryCreatedPayload> event = new DomainEvent<>(
+                UUID.randomUUID(),
+                "WineryCreated",
+                1,
+                Instant.now(),
+                requestId,
+                new WineryCreatedPayload(saved.getId(), saved.getName(), saved.getCountry())
+        );
+
+        publisher.publish(saved.getId().toString(), event);
+
+        return saved;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
