@@ -72,7 +72,6 @@ class WineControllerIT {
 
     @Test
     void createWine_returns400_whenValidationFails() throws Exception {
-        // name blank, wineYear too small, price negative
         String badJson = """
                 {
                   "name": "",

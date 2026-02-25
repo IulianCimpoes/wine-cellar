@@ -32,7 +32,7 @@ class WineryOutboxIT {
                 .name("TestWinery")
                 .country("TestCountry")
                 .version(1l)
-                .build()); // adapt to your actual API
+                .build());
 
         var events = outboxRepo.findTop50ByStatusOrderByOccurredAtAsc("NEW");
         assertThat(events).hasSize(1);

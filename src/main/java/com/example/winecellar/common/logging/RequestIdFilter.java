@@ -29,16 +29,13 @@ public class RequestIdFilter extends OncePerRequestFilter {
             requestId = UUID.randomUUID().toString();
         }
 
-        // Put into MDC for logging
         MDC.put(MDC_KEY, requestId);
 
-        // Ensure response contains the request id
         response.setHeader(HEADER, requestId);
 
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // Prevent leakage across threads/requests
             MDC.remove(MDC_KEY);
         }
     }

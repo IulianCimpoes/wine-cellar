@@ -62,8 +62,8 @@ public class OutboxKafkaDispatcher {
 
         for (OutboxEvent e : batch) {
             if (e.isRetryExhausted(maxRetries)) {
-                // simplest: stop retrying by moving it out of eligible states
-                // (you can add DEAD later; for now mark FAILED and push nextAttempt far future)
+                // stop retrying by moving it out of eligible states
+                // mark FAILED and push nextAttempt far future)
                 e.markFailed("Retry exhausted (maxRetries=" + maxRetries + ")", now.plusSeconds(365L * 24 * 3600));
                 continue;
             }
