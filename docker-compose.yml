@@ -3,22 +3,26 @@ services:
     build: .
     ports:
       - "8080:8080"
+      - "5005:5005"
     depends_on:
       kafka:
         condition: service_started
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
 
   wineaudit:
     build: ../wineaudit/
     ports:
       - "9090:9090"
+      - "5006:5006"
     depends_on:
       kafka:
         condition: service_started
     environment:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006
 
 
   kafka:

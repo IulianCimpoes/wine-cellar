@@ -2,12 +2,15 @@
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Better caching
+# copy pom first to leverage docker cache
 COPY pom.xml .
-COPY src ./src
 
-# If your CI already runs verify, consider `clean package -DskipTests` instead.
-RUN mvn -B -ntp clean verify
+# download deps (cacheable layer)
+RUN mvn -q -DskipTests dependency:go-offline || true
+
+#copy sources and build
+COPY src ./src
+RUN mvn -DskipTests package
 
 # ---- runtime stage ----
 FROM eclipse-temurin:21-jre
